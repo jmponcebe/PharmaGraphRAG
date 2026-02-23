@@ -28,18 +28,19 @@ dependencies = [
     "chromadb>=0.6",
     "sentence-transformers>=3.3",
     # LLM
-    "google-generativeai>=0.8",
+    "google-genai>=1.64.0",
     "ollama>=0.4",
     # API
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
+    # NLP / Entity extraction
+    "rapidfuzz>=3.14.3",
     # Utilities
     "python-dotenv>=1.0",
     "loguru>=0.7",
     "tqdm>=4.67",
-    "rapidfuzz>=3.14.3",
 ]
 
 [project.optional-dependencies]
