@@ -232,9 +232,7 @@ def _display_message(msg: ChatMessage) -> None:
                     render_sources,
                 )
 
-                tab_src, tab_graph = st.tabs(
-                    ["📄 Fuentes", "🕸️ Grafo"]
-                )
+                tab_src, tab_graph = st.tabs(["📄 Fuentes", "🕸️ Grafo"])
 
                 with tab_src:
                     render_sources(msg.sources_graph, msg.sources_vector)

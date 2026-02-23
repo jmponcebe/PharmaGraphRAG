@@ -74,12 +74,15 @@ def download_file(url: str, dest: Path, *, timeout: float = 300.0) -> Path:
         response.raise_for_status()
         total = int(response.headers.get("content-length", 0))
 
-        with open(dest, "wb") as f, tqdm(
-            total=total,
-            unit="B",
-            unit_scale=True,
-            desc=dest.name,
-        ) as progress:
+        with (
+            open(dest, "wb") as f,
+            tqdm(
+                total=total,
+                unit="B",
+                unit_scale=True,
+                desc=dest.name,
+            ) as progress,
+        ):
             for chunk in response.iter_bytes(chunk_size=8192):
                 f.write(chunk)
                 progress.update(len(chunk))

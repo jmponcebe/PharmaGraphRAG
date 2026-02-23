@@ -9,7 +9,6 @@ from typing import Any
 
 import streamlit as st
 
-
 # ---------------------------------------------------------------------------
 # Graph visualization (streamlit-agraph)
 # ---------------------------------------------------------------------------
@@ -64,13 +63,15 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
                     font={"color": "#ffffff", "size": 11},
                     shape="dot",
                 )
-            edges.append(Edge(
-                source=drug_id,
-                target=ae_id,
-                label=f"{count}",
-                color="#F44336",
-                width=max(1, min(5, count / 500)),
-            ))
+            edges.append(
+                Edge(
+                    source=drug_id,
+                    target=ae_id,
+                    label=f"{count}",
+                    color="#F44336",
+                    width=max(1, min(5, count / 500)),
+                )
+            )
 
         # Interactions
         for inter in ctx.get("interactions") or []:
@@ -85,13 +86,15 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
                     font={"color": "#ffffff", "size": 13},
                     shape="dot",
                 )
-            edges.append(Edge(
-                source=drug_id,
-                target=other_id,
-                label="INTERACTS",
-                color="#FF9800",
-                width=3,
-            ))
+            edges.append(
+                Edge(
+                    source=drug_id,
+                    target=other_id,
+                    label="INTERACTS",
+                    color="#FF9800",
+                    width=3,
+                )
+            )
 
         # Outcomes
         for out in ctx.get("outcomes") or []:
@@ -107,13 +110,15 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
                     font={"color": "#ffffff", "size": 11},
                     shape="diamond",
                 )
-            edges.append(Edge(
-                source=drug_id,
-                target=out_id,
-                label=f"{count}",
-                color="#9C27B0",
-                width=2,
-            ))
+            edges.append(
+                Edge(
+                    source=drug_id,
+                    target=out_id,
+                    label=f"{count}",
+                    color="#9C27B0",
+                    width=2,
+                )
+            )
 
         # Categories
         for cat in ctx.get("categories") or []:
@@ -127,13 +132,15 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
                     font={"color": "#ffffff", "size": 12},
                     shape="triangle",
                 )
-            edges.append(Edge(
-                source=drug_id,
-                target=cat_id,
-                label="BELONGS_TO",
-                color="#FF9800",
-                width=2,
-            ))
+            edges.append(
+                Edge(
+                    source=drug_id,
+                    target=cat_id,
+                    label="BELONGS_TO",
+                    color="#FF9800",
+                    width=2,
+                )
+            )
 
     if not nodes_map:
         st.info("No hay nodos para visualizar.")

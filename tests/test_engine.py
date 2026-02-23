@@ -6,7 +6,7 @@ All external dependencies (Neo4j, ChromaDB) are mocked.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -16,7 +16,6 @@ from pharmagraphrag.engine.entity_extractor import (
     _fuzzy_match,
     _normalize_query,
     extract_entities,
-    get_known_drugs,
     reset_cache,
 )
 from pharmagraphrag.engine.query_engine import (
@@ -29,15 +28,23 @@ from pharmagraphrag.engine.retriever import (
     retrieve_context,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
 SAMPLE_DRUGS: set[str] = {
-    "IBUPROFEN", "ASPIRIN", "WARFARIN", "METFORMIN", "ATORVASTATIN",
-    "LISINOPRIL", "METOPROLOL", "INSULIN GLARGINE", "ACETAMINOPHEN",
-    "AMOXICILLIN", "GABAPENTIN", "HYDROCHLOROTHIAZIDE",
+    "IBUPROFEN",
+    "ASPIRIN",
+    "WARFARIN",
+    "METFORMIN",
+    "ATORVASTATIN",
+    "LISINOPRIL",
+    "METOPROLOL",
+    "INSULIN GLARGINE",
+    "ACETAMINOPHEN",
+    "AMOXICILLIN",
+    "GABAPENTIN",
+    "HYDROCHLOROTHIAZIDE",
 }
 
 
@@ -76,7 +83,8 @@ class TestExactMatch:
 
     def test_two_drugs(self):
         result = _exact_match(
-            "DOES WARFARIN INTERACT WITH ASPIRIN", SAMPLE_DRUGS,
+            "DOES WARFARIN INTERACT WITH ASPIRIN",
+            SAMPLE_DRUGS,
         )
         assert "WARFARIN" in result
         assert "ASPIRIN" in result
@@ -118,7 +126,9 @@ class TestFuzzyMatch:
 
     def test_bigram_match(self):
         result = _fuzzy_match(
-            ["INSULIN", "GLARGINE"], SAMPLE_DRUGS, threshold=80,
+            ["INSULIN", "GLARGINE"],
+            SAMPLE_DRUGS,
+            threshold=80,
         )
         assert "INSULIN GLARGINE" in result
 
@@ -249,7 +259,10 @@ class TestRetrieveContext:
     )
     @patch(
         "pharmagraphrag.engine.retriever._retrieve_vector",
-        return_value=("[Source 1: ASPIRIN — Drug Interactions]\nText...", [{"id": "1", "text": "..."}]),
+        return_value=(
+            "[Source 1: ASPIRIN — Drug Interactions]\nText...",
+            [{"id": "1", "text": "..."}],
+        ),
     )
     def test_vector_retrieval(self, _mock_vector, _mock_graph):
         ctx = retrieve_context(drugs=["ASPIRIN"], query="aspirin interactions")

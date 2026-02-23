@@ -33,7 +33,7 @@ def get_model(model_name: str | None = None) -> SentenceTransformer:
     Returns:
         Loaded SentenceTransformer instance.
     """
-    global _model  # noqa: PLW0603
+    global _model
 
     if model_name is None:
         model_name = get_settings().embedding_model

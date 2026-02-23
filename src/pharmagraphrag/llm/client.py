@@ -111,7 +111,9 @@ def _generate_gemini(
 
         logger.info(
             "Gemini response: {} chars, model={}, tokens={}",
-            len(text), model, usage.get("total_tokens", "?"),
+            len(text),
+            model,
+            usage.get("total_tokens", "?"),
         )
 
         return LLMResponse(
@@ -121,7 +123,7 @@ def _generate_gemini(
             usage=usage,
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Gemini generation failed: {}", exc)
         return LLMResponse(model=model, provider="gemini", error=str(exc))
 
@@ -177,7 +179,9 @@ def _generate_ollama(
             }
 
         logger.info(
-            "Ollama response: {} chars, model={}", len(text), model,
+            "Ollama response: {} chars, model={}",
+            len(text),
+            model,
         )
 
         return LLMResponse(
@@ -187,7 +191,7 @@ def _generate_ollama(
             usage=usage,
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Ollama generation failed: {}", exc)
         return LLMResponse(model=model, provider="ollama", error=str(exc))
 
@@ -237,7 +241,9 @@ def generate_answer(
         fallback = "ollama" if provider == "gemini" else "gemini"
         logger.warning(
             "Primary provider '{}' failed ({}), trying fallback '{}'",
-            provider, response.error, fallback,
+            provider,
+            response.error,
+            fallback,
         )
         if fallback == "gemini":
             response = _generate_gemini(system_prompt, user_prompt, **kwargs)

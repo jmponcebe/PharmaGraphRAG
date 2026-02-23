@@ -27,8 +27,9 @@ from pharmagraphrag.data.clean_faers import OUTCOME_DESCRIPTIONS
 BATCH_SIZE = 5000
 
 
-def _get_driver(uri: str | None = None, user: str | None = None,
-                password: str | None = None) -> Driver:
+def _get_driver(
+    uri: str | None = None, user: str | None = None, password: str | None = None
+) -> Driver:
     """Create a Neo4j driver instance."""
     settings = get_settings()
     return GraphDatabase.driver(
@@ -40,6 +41,7 @@ def _get_driver(uri: str | None = None, user: str | None = None,
 # ---------------------------------------------------------------------------
 # FAERS loading
 # ---------------------------------------------------------------------------
+
 
 def _load_drugs_batch(tx: ManagedTransaction, drugs: list[dict]) -> None:
     """Load a batch of drug nodes via MERGE."""
@@ -106,8 +108,9 @@ def _load_has_outcome_batch(tx: ManagedTransaction, relations: list[dict]) -> No
     )
 
 
-def load_faers_to_neo4j(processed_dir: Path | None = None,
-                         quarters: list[str] | None = None) -> dict[str, int]:
+def load_faers_to_neo4j(
+    processed_dir: Path | None = None, quarters: list[str] | None = None
+) -> dict[str, int]:
     """Load FAERS data from Parquet into Neo4j.
 
     Creates Drug and AdverseEvent nodes and CAUSES relationships,
@@ -166,8 +169,7 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
 
             # Aggregate: count reports per drug-reaction pair
             df_agg = (
-                df_merged
-                .groupby(["drugname", "pt"])
+                df_merged.groupby(["drugname", "pt"])
                 .agg(report_count=("primaryid", "nunique"))
                 .reset_index()
             )
@@ -185,7 +187,9 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
             unique_drugs = df_agg["drugname"].unique().tolist()
             with driver.session() as session:
                 for i in range(0, len(unique_drugs), BATCH_SIZE):
-                    batch = [{"name": d, "role_cod": "PS"} for d in unique_drugs[i:i + BATCH_SIZE]]
+                    batch = [
+                        {"name": d, "role_cod": "PS"} for d in unique_drugs[i : i + BATCH_SIZE]
+                    ]
                     session.execute_write(_load_drugs_batch, batch)
                 counts["drugs"] += len(unique_drugs)
                 logger.info(f"  Loaded {len(unique_drugs):,} drug nodes")
@@ -194,7 +198,7 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
             unique_events = df_agg["pt"].unique().tolist()
             with driver.session() as session:
                 for i in range(0, len(unique_events), BATCH_SIZE):
-                    batch = [{"name": e} for e in unique_events[i:i + BATCH_SIZE]]
+                    batch = [{"name": e} for e in unique_events[i : i + BATCH_SIZE]]
                     session.execute_write(_load_adverse_events_batch, batch)
                 counts["events"] += len(unique_events)
                 logger.info(f"  Loaded {len(unique_events):,} adverse event nodes")
@@ -206,7 +210,7 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
 
             with driver.session() as session:
                 for i in range(0, len(causes_data), BATCH_SIZE):
-                    batch = causes_data[i:i + BATCH_SIZE]
+                    batch = causes_data[i : i + BATCH_SIZE]
                     session.execute_write(_load_causes_batch, batch)
                 counts["causes"] += len(causes_data)
                 logger.info(f"  Loaded {len(causes_data):,} CAUSES relationships")
@@ -217,20 +221,17 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
                 df_outc = pd.read_parquet(outc_path, columns=["primaryid", "outc_cod"])
                 df_drug_outc = df_drug.merge(df_outc, on="primaryid", how="inner")
                 df_outc_agg = (
-                    df_drug_outc
-                    .groupby(["drugname", "outc_cod"])
+                    df_drug_outc.groupby(["drugname", "outc_cod"])
                     .agg(report_count=("primaryid", "nunique"))
                     .reset_index()
                 )
                 df_outc_agg = df_outc_agg[df_outc_agg["report_count"] >= 3]
 
-                outc_data = df_outc_agg.rename(
-                    columns={"drugname": "drug_name"}
-                ).to_dict("records")
+                outc_data = df_outc_agg.rename(columns={"drugname": "drug_name"}).to_dict("records")
 
                 with driver.session() as session:
                     for i in range(0, len(outc_data), BATCH_SIZE):
-                        batch = outc_data[i:i + BATCH_SIZE]
+                        batch = outc_data[i : i + BATCH_SIZE]
                         session.execute_write(_load_has_outcome_batch, batch)
                     counts["has_outcome"] += len(outc_data)
                     logger.info(f"  Loaded {len(outc_data):,} HAS_OUTCOME relationships")
@@ -244,6 +245,7 @@ def load_faers_to_neo4j(processed_dir: Path | None = None,
 # ---------------------------------------------------------------------------
 # DailyMed loading (drug interactions + categories)
 # ---------------------------------------------------------------------------
+
 
 def _load_interacts_with_batch(tx: ManagedTransaction, interactions: list[dict]) -> None:
     """Load INTERACTS_WITH relationships between drugs."""
@@ -273,9 +275,9 @@ def _load_drug_categories_batch(tx: ManagedTransaction, relations: list[dict]) -
     )
 
 
-def _extract_interacting_drugs(drug_name: str,
-                                interaction_text: str,
-                                known_drugs: set[str]) -> list[dict]:
+def _extract_interacting_drugs(
+    drug_name: str, interaction_text: str, known_drugs: set[str]
+) -> list[dict]:
     """Extract drug interaction pairs from label text.
 
     Simple approach: check if any known drug names appear in the interaction text.
@@ -301,11 +303,13 @@ def _extract_interacting_drugs(drug_name: str,
             end = min(len(interaction_text), idx + len(other_drug) + 200)
             snippet = interaction_text[start:end].strip()
 
-            interactions.append({
-                "drug1": drug_name,
-                "drug2": other_drug,
-                "description": snippet[:500],  # Cap at 500 chars
-            })
+            interactions.append(
+                {
+                    "drug1": drug_name,
+                    "drug2": other_drug,
+                    "description": snippet[:500],  # Cap at 500 chars
+                }
+            )
 
     return interactions
 
@@ -393,7 +397,7 @@ def load_dailymed_to_neo4j(raw_dir: Path | None = None) -> dict[str, int]:
 
         with driver.session() as session:
             for i in range(0, len(unique_interactions), BATCH_SIZE):
-                batch = unique_interactions[i:i + BATCH_SIZE]
+                batch = unique_interactions[i : i + BATCH_SIZE]
                 session.execute_write(_load_interacts_with_batch, batch)
 
         counts["interactions"] = len(unique_interactions)
@@ -408,7 +412,7 @@ def load_dailymed_to_neo4j(raw_dir: Path | None = None) -> dict[str, int]:
 
         with driver.session() as session:
             for i in range(0, len(category_rels), BATCH_SIZE):
-                batch = category_rels[i:i + BATCH_SIZE]
+                batch = category_rels[i : i + BATCH_SIZE]
                 session.execute_write(_load_drug_categories_batch, batch)
 
         counts["categories"] = len(set(r["category"] for r in category_rels))

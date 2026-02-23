@@ -63,22 +63,26 @@ def query(req: QueryRequest) -> QueryResponse:
 
         # Graph sources
         for drug in result.context.drugs_found:
-            sources.append(SourceInfo(
-                type="graph",
-                drug=drug,
-                section="",
-                snippet=f"Knowledge graph data for {drug}",
-            ))
+            sources.append(
+                SourceInfo(
+                    type="graph",
+                    drug=drug,
+                    section="",
+                    snippet=f"Knowledge graph data for {drug}",
+                )
+            )
 
         # Vector sources
         for vr in result.context.vector_raw:
             meta = vr.get("metadata", {})
-            sources.append(SourceInfo(
-                type="vector",
-                drug=meta.get("drug_name", ""),
-                section=meta.get("section", ""),
-                snippet=vr.get("text", "")[:200],
-            ))
+            sources.append(
+                SourceInfo(
+                    type="vector",
+                    drug=meta.get("drug_name", ""),
+                    section=meta.get("section", ""),
+                    snippet=vr.get("text", "")[:200],
+                )
+            )
 
         # LLM answer (optional)
         answer = ""
@@ -171,7 +175,7 @@ def health() -> HealthResponse:
 
         result = search_drugs("ASPIRIN", limit=1)
         neo4j_status = "ok" if result else "empty"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         neo4j_status = f"error: {exc}"
 
     # Check ChromaDB
@@ -181,7 +185,7 @@ def health() -> HealthResponse:
         coll = get_collection()
         count = coll.count()
         chroma_status = f"ok ({count} docs)"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         chroma_status = f"error: {exc}"
 
     return HealthResponse(

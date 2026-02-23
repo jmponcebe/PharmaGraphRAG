@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import chromadb
 
 # ===================================================================
 # chunker tests
@@ -139,9 +142,7 @@ class TestChunkDrugLabel:
             assert c.metadata["brand_names"] == "Coumadin"
 
     def test_filter_sections(self, sample_label: dict) -> None:
-        chunks = chunk_drug_label(
-            sample_label, sections=["drug_interactions"]
-        )
+        chunks = chunk_drug_label(sample_label, sections=["drug_interactions"])
         assert all(c.section == "drug_interactions" for c in chunks)
 
     def test_empty_sections(self) -> None:
@@ -170,9 +171,7 @@ class TestChunkAllLabels:
                     "warnings": f"Warning for {name}. " * 10,
                 },
             }
-            (tmp_path / f"{name}.json").write_text(
-                json.dumps(data), encoding="utf-8"
-            )
+            (tmp_path / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
 
         chunks = chunk_all_labels(dailymed_dir=tmp_path, chunk_size=500)
         assert len(chunks) > 0
@@ -188,7 +187,7 @@ class TestChunkAllLabels:
 # ===================================================================
 # embedder tests
 # ===================================================================
-from pharmagraphrag.vectorstore.embedder import (
+from pharmagraphrag.vectorstore.embedder import (  # noqa: E402
     embed_single,
     embed_texts,
     get_embedding_dimension,
@@ -245,10 +244,9 @@ class TestEmbedder:
 # ===================================================================
 # store tests
 # ===================================================================
-from pharmagraphrag.vectorstore.store import (
+from pharmagraphrag.vectorstore.store import (  # noqa: E402
     add_chunks,
     format_vector_context,
-    get_client,
     get_collection,
     reset_collection,
     search,
@@ -367,15 +365,11 @@ class TestChromaStore:
         coll = reset_collection(client=temp_client, collection_name="test_drug_filter")
         add_chunks(sample_chunks, collection=coll)
 
-        results = search_by_drug(
-            "bleeding", drug_name="WARFARIN", n_results=5, collection=coll
-        )
+        results = search_by_drug("bleeding", drug_name="WARFARIN", n_results=5, collection=coll)
         assert len(results) > 0
         assert all(r["metadata"]["drug_name"] == "WARFARIN" for r in results)
 
-    def test_search_empty_collection(
-        self, temp_client: chromadb.ClientAPI
-    ) -> None:
+    def test_search_empty_collection(self, temp_client: chromadb.ClientAPI) -> None:
         coll = reset_collection(client=temp_client, collection_name="test_empty_search")
         results = search("anything", n_results=5, collection=coll)
         assert results == []

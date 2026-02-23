@@ -28,14 +28,36 @@ FAERS_DELIMITER = "$"
 # Tables to process and their key columns
 FAERS_TABLE_CONFIG: dict[str, dict] = {
     "DEMO": {
-        "key_cols": ["primaryid", "caseid", "age", "age_cod", "sex", "wt", "wt_cod",
-                     "occr_country", "event_dt", "init_fda_dt", "rept_cod", "mfr_sndr"],
+        "key_cols": [
+            "primaryid",
+            "caseid",
+            "age",
+            "age_cod",
+            "sex",
+            "wt",
+            "wt_cod",
+            "occr_country",
+            "event_dt",
+            "init_fda_dt",
+            "rept_cod",
+            "mfr_sndr",
+        ],
         "dtype_overrides": {"primaryid": str, "caseid": str},
     },
     "DRUG": {
-        "key_cols": ["primaryid", "caseid", "drug_seq", "drugname", "prod_ai",
-                     "route", "dose_vbm", "dose_amt", "dose_unit", "dose_form",
-                     "role_cod"],
+        "key_cols": [
+            "primaryid",
+            "caseid",
+            "drug_seq",
+            "drugname",
+            "prod_ai",
+            "route",
+            "dose_vbm",
+            "dose_amt",
+            "dose_unit",
+            "dose_form",
+            "role_cod",
+        ],
         "dtype_overrides": {"primaryid": str, "caseid": str, "drug_seq": str},
     },
     "REAC": {
@@ -261,8 +283,9 @@ CLEAN_FUNCTIONS = {
 }
 
 
-def process_quarter(quarter: str, raw_dir: Path | None = None,
-                    output_dir: Path | None = None) -> dict[str, Path]:
+def process_quarter(
+    quarter: str, raw_dir: Path | None = None, output_dir: Path | None = None
+) -> dict[str, Path]:
     """Process all tables for a single FAERS quarter.
 
     Args:

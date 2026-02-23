@@ -7,15 +7,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pharmagraphrag.llm.client import (
     LLMResponse,
     _generate_gemini,
     _generate_ollama,
     generate_answer,
 )
-
 
 # ===========================================================================
 # LLMResponse data class
@@ -160,7 +157,9 @@ class TestGenerateAnswer:
         """Uses the provider from settings."""
         mock_settings.return_value.llm_provider = "gemini"
         mock_gemini.return_value = LLMResponse(
-            text="answer", model="gemini-2.0-flash", provider="gemini",
+            text="answer",
+            model="gemini-2.0-flash",
+            provider="gemini",
         )
 
         result = generate_answer("sys", "user")
@@ -174,7 +173,9 @@ class TestGenerateAnswer:
         """Uses Ollama when configured."""
         mock_settings.return_value.llm_provider = "ollama"
         mock_ollama.return_value = LLMResponse(
-            text="answer", model="llama3:8b", provider="ollama",
+            text="answer",
+            model="llama3:8b",
+            provider="ollama",
         )
 
         result = generate_answer("sys", "user")
@@ -188,10 +189,14 @@ class TestGenerateAnswer:
         """Falls back to the other provider when primary fails."""
         mock_settings.return_value.llm_provider = "gemini"
         mock_gemini.return_value = LLMResponse(
-            model="gemini-2.0-flash", provider="gemini", error="API key invalid",
+            model="gemini-2.0-flash",
+            provider="gemini",
+            error="API key invalid",
         )
         mock_ollama.return_value = LLMResponse(
-            text="fallback answer", model="llama3:8b", provider="ollama",
+            text="fallback answer",
+            model="llama3:8b",
+            provider="ollama",
         )
 
         result = generate_answer("sys", "user")
@@ -202,7 +207,9 @@ class TestGenerateAnswer:
     def test_explicit_provider_override(self, mock_gemini):
         """Explicit provider overrides config."""
         mock_gemini.return_value = LLMResponse(
-            text="answer", model="gemini-2.0-flash", provider="gemini",
+            text="answer",
+            model="gemini-2.0-flash",
+            provider="gemini",
         )
 
         result = generate_answer("sys", "user", provider="gemini")

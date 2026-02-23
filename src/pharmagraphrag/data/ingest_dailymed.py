@@ -52,46 +52,109 @@ LABEL_SECTIONS = [
 # These are among the most prescribed drugs globally, covering diverse categories
 TOP_DRUGS: list[str] = [
     # Pain / Anti-inflammatory
-    "ibuprofen", "acetaminophen", "aspirin", "naproxen", "celecoxib",
-    "diclofenac", "meloxicam",
+    "ibuprofen",
+    "acetaminophen",
+    "aspirin",
+    "naproxen",
+    "celecoxib",
+    "diclofenac",
+    "meloxicam",
     # Cardiovascular
-    "lisinopril", "amlodipine", "metoprolol", "atorvastatin", "simvastatin",
-    "losartan", "valsartan", "hydrochlorothiazide", "furosemide", "warfarin",
-    "clopidogrel", "apixaban", "rivaroxaban",
+    "lisinopril",
+    "amlodipine",
+    "metoprolol",
+    "atorvastatin",
+    "simvastatin",
+    "losartan",
+    "valsartan",
+    "hydrochlorothiazide",
+    "furosemide",
+    "warfarin",
+    "clopidogrel",
+    "apixaban",
+    "rivaroxaban",
     # Diabetes
-    "metformin", "glipizide", "sitagliptin", "empagliflozin", "insulin glargine",
-    "liraglutide", "semaglutide",
+    "metformin",
+    "glipizide",
+    "sitagliptin",
+    "empagliflozin",
+    "insulin glargine",
+    "liraglutide",
+    "semaglutide",
     # Respiratory
-    "albuterol", "fluticasone", "montelukast", "tiotropium", "budesonide",
+    "albuterol",
+    "fluticasone",
+    "montelukast",
+    "tiotropium",
+    "budesonide",
     # Antibiotics
-    "amoxicillin", "azithromycin", "ciprofloxacin", "doxycycline", "metronidazole",
-    "levofloxacin", "trimethoprim", "cephalexin", "clindamycin",
+    "amoxicillin",
+    "azithromycin",
+    "ciprofloxacin",
+    "doxycycline",
+    "metronidazole",
+    "levofloxacin",
+    "trimethoprim",
+    "cephalexin",
+    "clindamycin",
     # Psychiatric / Neurological
-    "sertraline", "fluoxetine", "escitalopram", "duloxetine", "venlafaxine",
-    "bupropion", "trazodone", "alprazolam", "lorazepam", "diazepam",
-    "gabapentin", "pregabalin", "lamotrigine", "carbamazepine", "levetiracetam",
-    "quetiapine", "aripiprazole", "olanzapine", "risperidone",
+    "sertraline",
+    "fluoxetine",
+    "escitalopram",
+    "duloxetine",
+    "venlafaxine",
+    "bupropion",
+    "trazodone",
+    "alprazolam",
+    "lorazepam",
+    "diazepam",
+    "gabapentin",
+    "pregabalin",
+    "lamotrigine",
+    "carbamazepine",
+    "levetiracetam",
+    "quetiapine",
+    "aripiprazole",
+    "olanzapine",
+    "risperidone",
     # Gastrointestinal
-    "omeprazole", "pantoprazole", "esomeprazole", "ranitidine", "ondansetron",
+    "omeprazole",
+    "pantoprazole",
+    "esomeprazole",
+    "ranitidine",
+    "ondansetron",
     # Thyroid
     "levothyroxine",
     # Steroids
-    "prednisone", "dexamethasone", "methylprednisolone",
+    "prednisone",
+    "dexamethasone",
+    "methylprednisolone",
     # Opioids
-    "tramadol", "oxycodone", "morphine", "hydrocodone",
+    "tramadol",
+    "oxycodone",
+    "morphine",
+    "hydrocodone",
     # Muscle relaxants
-    "cyclobenzaprine", "baclofen",
+    "cyclobenzaprine",
+    "baclofen",
     # Other common
-    "sildenafil", "tadalafil", "finasteride", "tamsulosin",
-    "allopurinol", "colchicine",
-    "hydroxychloroquine", "methotrexate",
-    "zolpidem", "melatonin",
-    "cetirizine", "loratadine", "diphenhydramine",
+    "sildenafil",
+    "tadalafil",
+    "finasteride",
+    "tamsulosin",
+    "allopurinol",
+    "colchicine",
+    "hydroxychloroquine",
+    "methotrexate",
+    "zolpidem",
+    "melatonin",
+    "cetirizine",
+    "loratadine",
+    "diphenhydramine",
 ]
 
 
-def fetch_drug_names_from_dailymed(top_n: int = 200,
-                                    timeout: float = 30.0) -> list[str]:
+def fetch_drug_names_from_dailymed(top_n: int = 200, timeout: float = 30.0) -> list[str]:
     """Fetch drug names from DailyMed API.
 
     Args:
@@ -212,8 +275,9 @@ def _extract_label_data(drug_name: str, result: dict) -> dict:
     return label_data
 
 
-def ingest_drug_labels(drug_names: list[str] | None = None,
-                       output_dir: Path | None = None) -> list[dict]:
+def ingest_drug_labels(
+    drug_names: list[str] | None = None, output_dir: Path | None = None
+) -> list[dict]:
     """Fetch and save drug labels for a list of drugs.
 
     Args:
@@ -271,7 +335,7 @@ def ingest_drug_labels(drug_names: list[str] | None = None,
         "labels_failed": len(failed),
         "failed_drugs": failed,
         "sections_available": {
-            section: sum(1 for l in labels if section in l.get("sections", {}))
+            section: sum(1 for lbl in labels if section in lbl.get("sections", {}))
             for section in LABEL_SECTIONS
         },
     }
@@ -280,10 +344,7 @@ def ingest_drug_labels(drug_names: list[str] | None = None,
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
-    logger.success(
-        f"Ingested {len(labels)}/{len(drug_names)} drug labels "
-        f"({len(failed)} failed)"
-    )
+    logger.success(f"Ingested {len(labels)}/{len(drug_names)} drug labels ({len(failed)} failed)")
     if failed:
         logger.info(f"Failed drugs: {', '.join(failed[:10])}{'...' if len(failed) > 10 else ''}")
 
@@ -319,7 +380,7 @@ def main() -> None:
     else:
         drug_names = TOP_DRUGS
         if args.top_n:
-            drug_names = drug_names[:args.top_n]
+            drug_names = drug_names[: args.top_n]
 
     labels = ingest_drug_labels(drug_names)
 
@@ -327,7 +388,7 @@ def main() -> None:
     if labels:
         logger.info("Section coverage:")
         for section in LABEL_SECTIONS:
-            count = sum(1 for l in labels if section in l.get("sections", {}))
+            count = sum(1 for lbl in labels if section in lbl.get("sections", {}))
             if count > 0:
                 logger.info(f"  {section}: {count}/{len(labels)} drugs")
 

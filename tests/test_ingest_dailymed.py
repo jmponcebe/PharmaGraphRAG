@@ -1,8 +1,8 @@
 """Tests for DailyMed/openFDA ingestion module."""
 
 from pharmagraphrag.data.ingest_dailymed import (
-    TOP_DRUGS,
     LABEL_SECTIONS,
+    TOP_DRUGS,
     _extract_label_data,
 )
 

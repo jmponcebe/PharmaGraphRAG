@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # ChatMessage dataclass
 # ---------------------------------------------------------------------------
@@ -250,12 +248,15 @@ class TestProcessQuestion:
             provider="gemini",
         )
 
-        with patch(
-            "pharmagraphrag.engine.query_engine.process_query",
-            return_value=mock_result,
-        ), patch(
-            "pharmagraphrag.llm.client.generate_answer",
-            return_value=mock_llm,
+        with (
+            patch(
+                "pharmagraphrag.engine.query_engine.process_query",
+                return_value=mock_result,
+            ),
+            patch(
+                "pharmagraphrag.llm.client.generate_answer",
+                return_value=mock_llm,
+            ),
         ):
             from pharmagraphrag.ui.app import _process_question
 
@@ -340,8 +341,8 @@ class _DictLike(dict):
     def __getattr__(self, key):
         try:
             return self[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as err:
+            raise AttributeError(key) from err
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -349,8 +350,8 @@ class _DictLike(dict):
     def __delattr__(self, key):
         try:
             del self[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as err:
+            raise AttributeError(key) from err
 
 
 class TestSessionInit:

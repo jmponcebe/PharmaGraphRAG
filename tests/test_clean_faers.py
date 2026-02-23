@@ -3,11 +3,11 @@
 import pandas as pd
 
 from pharmagraphrag.data.clean_faers import (
-    normalize_drug_name,
-    clean_drug,
-    clean_reac,
-    clean_outc,
     OUTCOME_DESCRIPTIONS,
+    clean_drug,
+    clean_outc,
+    clean_reac,
+    normalize_drug_name,
 )
 
 
@@ -44,32 +44,38 @@ class TestCleanDrug:
     """Tests for drug table cleaning."""
 
     def test_deduplicates_by_primaryid_and_seq(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1", "1", "2"],
-            "drug_seq": ["1", "1", "1"],
-            "drugname": ["aspirin", "ASPIRIN", "ibuprofen"],
-            "role_cod": ["PS", "PS", "SS"],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1", "1", "2"],
+                "drug_seq": ["1", "1", "1"],
+                "drugname": ["aspirin", "ASPIRIN", "ibuprofen"],
+                "role_cod": ["PS", "PS", "SS"],
+            }
+        )
         result = clean_drug(df)
         assert len(result) == 2
 
     def test_normalizes_drug_names(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1"],
-            "drug_seq": ["1"],
-            "drugname": ["  ibuprofen (200mg)  "],
-            "role_cod": ["PS"],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1"],
+                "drug_seq": ["1"],
+                "drugname": ["  ibuprofen (200mg)  "],
+                "role_cod": ["PS"],
+            }
+        )
         result = clean_drug(df)
         assert result.iloc[0]["drugname"] == "IBUPROFEN"
 
     def test_removes_empty_drug_names(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1", "2"],
-            "drug_seq": ["1", "1"],
-            "drugname": ["aspirin", ""],
-            "role_cod": ["PS", "PS"],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1", "2"],
+                "drug_seq": ["1", "1"],
+                "drugname": ["aspirin", ""],
+                "role_cod": ["PS", "PS"],
+            }
+        )
         result = clean_drug(df)
         assert len(result) == 1
 
@@ -78,18 +84,22 @@ class TestCleanReac:
     """Tests for reactions table cleaning."""
 
     def test_normalizes_reaction_terms(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1"],
-            "pt": ["  headache  "],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1"],
+                "pt": ["  headache  "],
+            }
+        )
         result = clean_reac(df)
         assert result.iloc[0]["pt"] == "HEADACHE"
 
     def test_removes_empty_reactions(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1", "2"],
-            "pt": ["nausea", None],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1", "2"],
+                "pt": ["nausea", None],
+            }
+        )
         result = clean_reac(df)
         assert len(result) == 1
 
@@ -98,10 +108,12 @@ class TestCleanOutc:
     """Tests for outcomes table cleaning."""
 
     def test_maps_outcome_descriptions(self) -> None:
-        df = pd.DataFrame({
-            "primaryid": ["1", "2"],
-            "outc_cod": ["DE", "HO"],
-        })
+        df = pd.DataFrame(
+            {
+                "primaryid": ["1", "2"],
+                "outc_cod": ["DE", "HO"],
+            }
+        )
         result = clean_outc(df)
         assert result.iloc[0]["outc_desc"] == "Death"
         assert result.iloc[1]["outc_desc"] == "Hospitalization"

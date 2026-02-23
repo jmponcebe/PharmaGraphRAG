@@ -11,7 +11,6 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 from loguru import logger
 
@@ -228,9 +227,7 @@ def chunk_all_labels(
             sections=sections,
         )
         all_chunks.extend(chunks)
-        logger.debug(
-            "  {} → {} chunks", label.get("drug_name", filepath.stem), len(chunks)
-        )
+        logger.debug("  {} → {} chunks", label.get("drug_name", filepath.stem), len(chunks))
 
     logger.info("Total chunks created: {}", len(all_chunks))
     return all_chunks

@@ -287,8 +287,7 @@ def format_graph_context(context: dict) -> str:
         parts.append("\nPatient outcomes:")
         for o in outcomes:
             parts.append(
-                f"  - {o['outcome_description']} ({o['outcome_code']}): "
-                f"{o['report_count']} reports"
+                f"  - {o['outcome_description']} ({o['outcome_code']}): {o['report_count']} reports"
             )
 
     return "\n".join(parts)

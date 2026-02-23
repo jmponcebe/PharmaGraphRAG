@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from pharmagraphrag.api.main import app
@@ -70,12 +69,14 @@ class TestQueryEndpoint:
                 graph_context="Drug: IBUPROFEN\nAdverse events: NAUSEA",
                 vector_context="[Source 1] text...",
                 drugs_found=["IBUPROFEN"],
-                vector_raw=[{
-                    "id": "1",
-                    "text": "Ibuprofen may cause nausea...",
-                    "metadata": {"drug_name": "IBUPROFEN", "section": "adverse_reactions"},
-                    "distance": 0.3,
-                }],
+                vector_raw=[
+                    {
+                        "id": "1",
+                        "text": "Ibuprofen may cause nausea...",
+                        "metadata": {"drug_name": "IBUPROFEN", "section": "adverse_reactions"},
+                        "distance": 0.3,
+                    }
+                ],
             ),
             system_prompt="SYS",
             user_prompt="USR",
@@ -135,7 +136,9 @@ class TestQueryEndpoint:
             user_prompt="USR",
         )
         mock_llm.return_value = LLMResponse(
-            text="", model="gemini-2.0-flash", provider="gemini",
+            text="",
+            model="gemini-2.0-flash",
+            provider="gemini",
             error="API key invalid",
         )
 

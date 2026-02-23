@@ -21,7 +21,6 @@ import json
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
 
 from loguru import logger
 from rapidfuzz import fuzz, process
@@ -32,7 +31,7 @@ from pharmagraphrag.config import DATA_RAW_DIR
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Minimum score (0–100) for fuzzy matching to accept a candidate
+# Minimum score (0-100) for fuzzy matching to accept a candidate
 FUZZY_THRESHOLD = 80
 
 # Minimum drug-name length to consider (avoid matching "A", "AS", etc.)
@@ -40,18 +39,82 @@ MIN_DRUG_NAME_LENGTH = 3
 
 # Common stop words that should NOT be extracted even if they match
 STOP_WORDS: set[str] = {
-    "THE", "AND", "FOR", "WITH", "THIS", "THAT", "FROM", "HAVE", "HAS",
-    "ARE", "WAS", "WERE", "BEEN", "WILL", "CAN", "MAY", "SHOULD",
-    "WHAT", "WHICH", "WHEN", "WHERE", "HOW", "WHO", "WHY", "NOT",
-    "DOES", "DRUG", "DRUGS", "EFFECT", "EFFECTS", "SIDE", "TAKE",
-    "TAKING", "USE", "USED", "CAUSE", "CAUSES", "INTERACTION",
-    "INTERACTIONS", "ADVERSE", "EVENT", "EVENTS", "REPORT", "REPORTS",
-    "PATIENT", "PATIENTS", "DOSE", "RISK", "TREATMENT",
+    "THE",
+    "AND",
+    "FOR",
+    "WITH",
+    "THIS",
+    "THAT",
+    "FROM",
+    "HAVE",
+    "HAS",
+    "ARE",
+    "WAS",
+    "WERE",
+    "BEEN",
+    "WILL",
+    "CAN",
+    "MAY",
+    "SHOULD",
+    "WHAT",
+    "WHICH",
+    "WHEN",
+    "WHERE",
+    "HOW",
+    "WHO",
+    "WHY",
+    "NOT",
+    "DOES",
+    "DRUG",
+    "DRUGS",
+    "EFFECT",
+    "EFFECTS",
+    "SIDE",
+    "TAKE",
+    "TAKING",
+    "USE",
+    "USED",
+    "CAUSE",
+    "CAUSES",
+    "INTERACTION",
+    "INTERACTIONS",
+    "ADVERSE",
+    "EVENT",
+    "EVENTS",
+    "REPORT",
+    "REPORTS",
+    "PATIENT",
+    "PATIENTS",
+    "DOSE",
+    "RISK",
+    "TREATMENT",
     # Spanish stop words
-    "QUE", "LOS", "LAS", "DEL", "UNA", "CON", "POR", "PARA", "UNO",
-    "COMO", "MAS", "SUS", "HAY", "SER", "TIENE", "ENTRE", "CUANDO",
-    "EFECTOS", "ADVERSOS", "SECUNDARIOS", "MEDICAMENTO", "MEDICAMENTOS",
-    "INTERACCIONES", "TOMAR", "FARMACO", "FARMACOS",
+    "QUE",
+    "LOS",
+    "LAS",
+    "DEL",
+    "UNA",
+    "CON",
+    "POR",
+    "PARA",
+    "UNO",
+    "COMO",
+    "MAS",
+    "SUS",
+    "HAY",
+    "SER",
+    "TIENE",
+    "ENTRE",
+    "CUANDO",
+    "EFECTOS",
+    "ADVERSOS",
+    "SECUNDARIOS",
+    "MEDICAMENTO",
+    "MEDICAMENTOS",
+    "INTERACCIONES",
+    "TOMAR",
+    "FARMACO",
+    "FARMACOS",
 }
 
 
@@ -126,7 +189,7 @@ def _load_known_drugs_from_neo4j() -> set[str]:
         drugs = {n.upper().strip() for n in names if len(n) >= MIN_DRUG_NAME_LENGTH}
         logger.info("Loaded {} drug names from Neo4j", len(drugs))
         return drugs
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.debug("Could not load drugs from Neo4j: {}", exc)
         return set()
 
@@ -145,7 +208,7 @@ def get_known_drugs(use_neo4j: bool = True) -> set[str]:
     Returns:
         Set of uppercase drug names.
     """
-    global _cached_all_drugs  # noqa: PLW0603
+    global _cached_all_drugs
     if _cached_all_drugs is not None:
         return _cached_all_drugs
 
@@ -162,7 +225,7 @@ def get_known_drugs(use_neo4j: bool = True) -> set[str]:
 
 def reset_cache() -> None:
     """Clear the known-drugs cache (useful in tests)."""
-    global _cached_all_drugs  # noqa: PLW0603
+    global _cached_all_drugs
     _cached_all_drugs = None
     _load_known_drugs_from_disk.cache_clear()
 
@@ -191,7 +254,7 @@ def _exact_match(query_upper: str, known_drugs: set[str]) -> list[str]:
     for drug in sorted_drugs:
         if len(drug) < MIN_DRUG_NAME_LENGTH:
             continue
-        # Use word-boundary–aware search to avoid matching inside words
+        # Use word-boundary-aware search to avoid matching inside words
         pattern = r"(?<![A-Z])" + re.escape(drug) + r"(?![A-Z])"
         if re.search(pattern, query_upper):
             # Make sure the match isn't already covered by a longer name
@@ -223,7 +286,10 @@ def _fuzzy_match(
         if len(token) < MIN_DRUG_NAME_LENGTH or token in STOP_WORDS:
             continue
         match = process.extractOne(
-            token, drugs_list, scorer=fuzz.ratio, score_cutoff=threshold,
+            token,
+            drugs_list,
+            scorer=fuzz.ratio,
+            score_cutoff=threshold,
         )
         if match:
             candidates.append(match[0])
@@ -234,7 +300,10 @@ def _fuzzy_match(
         if any(t in STOP_WORDS for t in [query_tokens[i], query_tokens[i + 1]]):
             continue
         match = process.extractOne(
-            bigram, drugs_list, scorer=fuzz.ratio, score_cutoff=threshold,
+            bigram,
+            drugs_list,
+            scorer=fuzz.ratio,
+            score_cutoff=threshold,
         )
         if match:
             candidates.append(match[0])
@@ -265,7 +334,7 @@ def extract_entities(
         question: User question in natural language.
         use_neo4j: Include drugs from Neo4j in the catalogue.
         fuzzy: Enable fuzzy matching as fallback.
-        fuzzy_threshold: Minimum rapidfuzz score (0–100).
+        fuzzy_threshold: Minimum rapidfuzz score (0-100).
 
     Returns:
         ExtractedEntities with recognised drugs list.

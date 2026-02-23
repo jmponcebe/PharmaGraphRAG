@@ -44,8 +44,9 @@ INDEXES = [
 ]
 
 
-def create_schema(uri: str | None = None, user: str | None = None,
-                  password: str | None = None) -> None:
+def create_schema(
+    uri: str | None = None, user: str | None = None, password: str | None = None
+) -> None:
     """Create the Neo4j schema with constraints and indexes.
 
     Args:
@@ -83,8 +84,9 @@ def create_schema(uri: str | None = None, user: str | None = None,
         driver.close()
 
 
-def drop_all_data(uri: str | None = None, user: str | None = None,
-                  password: str | None = None) -> None:
+def drop_all_data(
+    uri: str | None = None, user: str | None = None, password: str | None = None
+) -> None:
     """Drop all nodes and relationships (for development/testing).
 
     Args:
@@ -122,8 +124,9 @@ def drop_all_data(uri: str | None = None, user: str | None = None,
         driver.close()
 
 
-def get_schema_info(uri: str | None = None, user: str | None = None,
-                    password: str | None = None) -> dict:
+def get_schema_info(
+    uri: str | None = None, user: str | None = None, password: str | None = None
+) -> dict:
     """Get current schema information from Neo4j.
 
     Returns:
@@ -143,9 +146,7 @@ def get_schema_info(uri: str | None = None, user: str | None = None,
             result = session.run("CALL db.labels() YIELD label RETURN label")
             for record in result:
                 label = record["label"]
-                count_result = session.run(
-                    f"MATCH (n:`{label}`) RETURN count(n) AS count"
-                )
+                count_result = session.run(f"MATCH (n:`{label}`) RETURN count(n) AS count")
                 node_counts[label] = count_result.single()["count"]
 
             # Relationship counts by type

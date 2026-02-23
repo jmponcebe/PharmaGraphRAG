@@ -71,7 +71,7 @@ def _retrieve_graph(drugs: list[str]) -> tuple[str, dict[str, Any], list[str]]:
             format_graph_context,
             get_drug_full_context,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("Graph module unavailable: {}", exc)
         return "", {}, []
 
@@ -83,13 +83,15 @@ def _retrieve_graph(drugs: list[str]) -> tuple[str, dict[str, Any], list[str]]:
         try:
             ctx = get_drug_full_context(drug)
             # Check if any data was returned
-            has_data = any([
-                ctx.get("drug_info"),
-                ctx.get("adverse_events"),
-                ctx.get("interactions"),
-                ctx.get("outcomes"),
-                ctx.get("categories"),
-            ])
+            has_data = any(
+                [
+                    ctx.get("drug_info"),
+                    ctx.get("adverse_events"),
+                    ctx.get("interactions"),
+                    ctx.get("outcomes"),
+                    ctx.get("categories"),
+                ]
+            )
             if has_data:
                 formatted = format_graph_context(ctx)
                 parts.append(formatted)
@@ -98,7 +100,7 @@ def _retrieve_graph(drugs: list[str]) -> tuple[str, dict[str, Any], list[str]]:
                 logger.debug("Graph context for {}: {} chars", drug, len(formatted))
             else:
                 logger.debug("No graph data for {}", drug)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("Error retrieving graph context for {}: {}", drug, exc)
 
     return "\n\n---\n\n".join(parts), raw, found
@@ -135,7 +137,7 @@ def _retrieve_vector(
             search,
             search_by_drug,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("Vector store unavailable: {}", exc)
         return "", []
 
@@ -150,7 +152,9 @@ def _retrieve_vector(
                 all_results.extend(results)
                 logger.debug(
                     "Vector search for '{}' scoped to {}: {} results",
-                    query[:40], drug, len(results),
+                    query[:40],
+                    drug,
+                    len(results),
                 )
 
             # Also do a global search to catch cross-drug info
@@ -165,7 +169,8 @@ def _retrieve_vector(
             all_results = search(query, n_results=n_results)
             logger.debug(
                 "Global vector search for '{}': {} results",
-                query[:40], len(all_results),
+                query[:40],
+                len(all_results),
             )
 
         # Sort by distance (lower = better)
@@ -185,7 +190,7 @@ def _retrieve_vector(
         formatted = format_vector_context(unique, max_chars=max_chars)
         return formatted, unique
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("Vector search failed: {}", exc)
         return "", []
 

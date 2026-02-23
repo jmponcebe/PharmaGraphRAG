@@ -14,7 +14,7 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 from loguru import logger
 
-from pharmagraphrag.config import DATA_DIR, get_settings
+from pharmagraphrag.config import DATA_DIR
 from pharmagraphrag.vectorstore.chunker import TextChunk
 from pharmagraphrag.vectorstore.embedder import embed_texts
 
@@ -42,7 +42,7 @@ def get_client(persist_dir: Path | None = None) -> chromadb.ClientAPI:
     Returns:
         ChromaDB PersistentClient.
     """
-    global _client  # noqa: PLW0603
+    global _client
 
     if persist_dir is None:
         persist_dir = CHROMA_PERSIST_DIR
