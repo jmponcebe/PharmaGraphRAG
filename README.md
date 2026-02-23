@@ -4,6 +4,19 @@
 
 A question-answering system that combines a pharmaceutical knowledge graph (Neo4j) with Retrieval-Augmented Generation (RAG) to answer natural language questions about drug interactions and adverse events, grounded in real FDA data.
 
+## Current Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Data Pipeline | ✅ Complete | FAERS (2024Q3+Q4): 816K reports, 3.9M drug entries. DailyMed: 88 drugs |
+| Knowledge Graph | ✅ Complete | 4,998 Drugs, 6,863 AdverseEvents, 365K CAUSES, 193 INTERACTS_WITH |
+| Vector Store | ✅ Complete | 5,654 text chunks, 384-dim embeddings, cosine similarity search |
+| Query Engine | 🔲 Pending | Entity extraction, graph+vector retrieval, context merging |
+| LLM Integration | 🔲 Pending | Gemini API + Ollama fallback |
+| API | 🔲 Pending | FastAPI endpoints |
+| UI | 🔲 Pending | Streamlit dashboard |
+| Tests | ✅ 64 passing | 29 data pipeline + 35 vector store |
+
 ## Example Questions
 
 - *"¿Qué efectos adversos tiene el ibuprofeno?"*
@@ -64,8 +77,8 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 git clone https://github.com/jmponcebe/PharmaGraphRAG.git
 cd PharmaGraphRAG
 
-# Install dependencies
-uv sync
+# Install dependencies (requires uv: https://docs.astral.sh/uv/)
+uv sync --extra dev --extra ui
 
 # Copy environment variables
 cp .env.example .env
@@ -74,17 +87,26 @@ cp .env.example .env
 # Start infrastructure (Neo4j)
 docker compose up -d neo4j
 
-# Run data pipeline
-uv run python -m pharmagraphrag.data.download_faers
-uv run python -m pharmagraphrag.data.clean_faers
-uv run python -m pharmagraphrag.data.ingest_dailymed
+# 1. Download & clean FAERS data
+uv run python scripts/download_faers.py
+uv run python scripts/clean_faers.py
 
-# Load knowledge graph
-uv run python -m pharmagraphrag.graph.load
+# 2. Fetch DailyMed drug labels
+uv run python scripts/ingest_dailymed.py
 
-# Build vector store
-uv run python -m pharmagraphrag.vectorstore.build
+# 3. Load knowledge graph
+uv run python scripts/load_graph.py
 
+# 4. Build vector store
+uv run python scripts/load_vectorstore.py
+
+# 5. Validate semantic search
+uv run python scripts/validate_search.py
+```
+
+### Running (coming soon)
+
+```bash
 # Start API
 uv run uvicorn pharmagraphrag.api.main:app --reload
 
@@ -119,14 +141,47 @@ uv run mypy src/
 
 ```
 src/pharmagraphrag/
-├── data/           # Data download, cleaning, ingestion
-├── graph/          # Neo4j schema, loading, queries
-├── vectorstore/    # Embeddings, ChromaDB operations
-├── engine/         # GraphRAG query engine
-├── llm/            # LLM integration (Gemini, Ollama)
-├── api/            # FastAPI endpoints
-└── ui/             # Streamlit dashboard
+├── config.py           # Pydantic BaseSettings (Neo4j, LLM, FAERS config)
+├── data/               # Data download, cleaning, ingestion
+│   ├── download_faers.py   # Download FAERS quarterly ZIPs from FDA
+│   ├── clean_faers.py      # Clean FAERS CSVs → Parquet
+│   └── ingest_dailymed.py  # Fetch drug labels from openFDA API
+├── graph/              # Neo4j schema, loading, queries
+│   ├── schema.py           # Constraints + indexes
+│   ├── loader.py           # Load FAERS + DailyMed into Neo4j
+│   └── queries.py          # Cypher query functions for retrieval
+├── vectorstore/        # Embeddings, ChromaDB operations
+│   ├── chunker.py          # Text chunking (1000 chars, 200 overlap)
+│   ├── embedder.py         # sentence-transformers embeddings (384 dims)
+│   └── store.py            # ChromaDB add, search, format_context
+├── engine/             # TODO: GraphRAG query engine
+├── llm/                # TODO: LLM integration (Gemini, Ollama)
+├── api/                # TODO: FastAPI endpoints
+└── ui/                 # TODO: Streamlit dashboard
 ```
+
+## Knowledge Graph Schema
+
+```
+(:Drug)-[:CAUSES {report_count}]->(:AdverseEvent)
+(:Drug)-[:INTERACTS_WITH {source, description}]->(:Drug)
+(:Drug)-[:HAS_OUTCOME {report_count}]->(:Outcome)
+(:Drug)-[:BELONGS_TO]->(:DrugCategory)
+```
+
+| Node | Count | Source |
+|------|-------|--------|
+| Drug | 4,998 | FAERS + DailyMed |
+| AdverseEvent | 6,863 | FAERS |
+| Outcome | 7 | FAERS (Death, Hospitalization, etc.) |
+| DrugCategory | 32 | DailyMed |
+
+| Relationship | Count |
+|-------------|-------|
+| CAUSES | 365,360 |
+| HAS_OUTCOME | 15,759 |
+| INTERACTS_WITH | 193 |
+| BELONGS_TO | 47 |
 
 ## License
 
