@@ -10,12 +10,12 @@ Usage:
 
 from __future__ import annotations
 
-from neo4j import GraphDatabase
+from neo4j import Driver, GraphDatabase
 
 from pharmagraphrag.config import get_settings
 
 
-def _get_driver() -> GraphDatabase.driver:
+def _get_driver() -> Driver:
     """Create a Neo4j driver from settings."""
     settings = get_settings()
     return GraphDatabase.driver(

@@ -29,6 +29,7 @@ data/processed/faers/
 ## Fuente 1: FDA FAERS
 
 ### ¿Qué es FAERS?
+
 **FDA Adverse Event Reporting System** — Un sistema donde médicos, pacientes y fabricantes reportan **efectos adversos** de medicamentos a la FDA.
 
 Ejemplo de un reporte:
@@ -43,7 +44,7 @@ Descargamos 2 trimestres: **2024Q3** y **2024Q4** (~135MB en total).
 Cada trimestre tiene 5 tablas:
 
 | Tabla | Qué contiene | Ejemplo | Filas (aprox) |
-|-------|-------------|---------|---------------|
+| ------- | ------------- | --------- | --------------- |
 | **DEMO** | Datos demográficos del paciente | Edad: 65, Sexo: F, País: US | 408K |
 | **DRUG** | Medicamentos que tomaba | WARFARIN, 5mg, oral | 1.95M |
 | **REAC** | Reacciones adversas reportadas | HAEMORRHAGE, NAUSEA | 1.4M |
@@ -69,12 +70,14 @@ url = f"https://fis.fda.gov/content/Exports/faers_ascii_{quarter}.zip"
 ```
 
 **Conceptos clave**:
+
 - **Streaming download**: Descargar archivo grande sin cargar todo en RAM. Va leyendo trozos (chunks) y escribiéndolos en disco progresivamente.
 - **Idempotencia**: Si ejecutas el script 2 veces, la segunda vez no hace nada (el archivo ya existe). Esto es importante en pipelines de datos — deberías poder re-ejecutar sin efectos secundarios.
 
 ### clean_faers.py — Paso a paso
 
 Los datos crudos son un desastre:
+
 ```
 "primaryid$caseid$caseversion$i_f_code$event_dt$mfr_dt..."
 "123456$654321$1$I$20240101$..."
@@ -83,6 +86,7 @@ Los datos crudos son un desastre:
 ```
 
 Problemas:
+
 1. **Delimitador `$`** en vez de coma (CSV normal)
 2. **Duplicados**: El mismo reporte puede tener varias versiones
 3. **Inconsistencia**: "WARFARIN", "warfarin", "Warfarin (5mg)" son el mismo fármaco
@@ -165,6 +169,7 @@ data/processed/faers/
 ## Fuente 2: DailyMed
 
 ### ¿Qué es DailyMed?
+
 La base de datos oficial de **etiquetas de medicamentos** de la FDA. Cada medicamento aprobado tiene una etiqueta con secciones como:
 
 - **Drug Interactions**: Con qué otros fármacos interactúa
@@ -177,7 +182,7 @@ La base de datos oficial de **etiquetas de medicamentos** de la FDA. Cada medica
 ### ¿Por qué necesitamos DailyMed si ya tenemos FAERS?
 
 | | FAERS | DailyMed |
-|---|---|---|
+| --- | --- | --- |
 | **Tipo de dato** | Reportes individuales (cuantitativo) | Texto oficial de etiquetas (cualitativo) |
 | **Ejemplo** | "500 reportes de sangrado con warfarin" | "Warfarin puede causar sangrado grave. Monitorear INR regularmente." |
 | **Uso en el proyecto** | Nodos y relaciones en Neo4j | Chunks de texto en ChromaDB |
@@ -257,10 +262,11 @@ SECTIONS = [
 ## Conceptos importantes de Data Engineering
 
 ### ETL (Extract, Transform, Load)
+
 Nuestro pipeline sigue el patrón clásico de data engineering:
 
 | Fase | Qué hace | En nuestro proyecto |
-|------|---------|-------------------|
+| ------ | --------- | ------------------- |
 | **Extract** | Obtener datos de la fuente | `download_faers.py`, `ingest_dailymed.py` |
 | **Transform** | Limpiar, normalizar, deduplicar | `clean_faers.py` |
 | **Load** | Cargar en el sistema de destino | `load_graph.py`, `load_vectorstore.py` |
@@ -270,20 +276,24 @@ Nuestro pipeline sigue el patrón clásico de data engineering:
 Imagina una tabla con 3 columnas y 1 millón de filas:
 
 **CSV (row-oriented)**: Guarda fila por fila
+
 ```
 nombre,edad,ciudad
 Ana,25,Madrid
 Bob,30,Barcelona
 ... (1 millón más)
 ```
+
 Para leer solo la columna "edad", tiene que leer TODAS las filas.
 
 **Parquet (column-oriented)**: Guarda columna por columna
+
 ```
 [nombres]: Ana, Bob, Carlos, ...
 [edades]: 25, 30, 28, ...
 [ciudades]: Madrid, Barcelona, Sevilla, ...
 ```
+
 Para leer solo "edad", lee un bloque contiguo → **100x más rápido**.
 
 Además, los valores de una misma columna son similares, así que **comprime mucho mejor**.
@@ -297,6 +307,7 @@ Un pipeline idempotente produce el **mismo resultado** sin importar cuántas vec
 3. **Testing**: Resultados reproducibles
 
 Nuestro pipeline es idempotente:
+
 - `download_faers.py`: Si el ZIP ya existe, no lo descarga de nuevo
 - `clean_faers.py`: Sobreescribe los Parquet → mismo resultado siempre
 - `load_graph.py`: Usa MERGE (upsert) en vez de CREATE → no duplica nodos
@@ -316,6 +327,7 @@ Esto es **rate limiting** (limitación de velocidad). Es cortesía y buena prác
 ## Cómo los tests validan el pipeline
 
 ### Tests de download_faers.py (2 tests)
+
 ```python
 def test_build_download_url():
     """Verifica que se construye la URL correcta."""
@@ -330,6 +342,7 @@ def test_download_file_skips_existing(tmp_path):
 ```
 
 ### Tests de clean_faers.py (13 tests)
+
 ```python
 def test_normalize_drug_name():
     assert normalize_drug_name("warfarin (5mg)") == "WARFARIN"
@@ -345,6 +358,7 @@ def test_outcome_mapping():
 ```
 
 ### Tests de ingest_dailymed.py (12 tests)
+
 ```python
 @patch("httpx.get")  # Simula las llamadas HTTP (no llama a la API real)
 def test_fetch_drug_label(mock_get):

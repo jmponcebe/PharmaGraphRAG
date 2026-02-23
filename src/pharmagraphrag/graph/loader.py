@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pandas as pd
 from loguru import logger
-from neo4j import GraphDatabase, ManagedTransaction
+from neo4j import Driver, GraphDatabase, ManagedTransaction
 
 from pharmagraphrag.config import DATA_PROCESSED_DIR, DATA_RAW_DIR, get_settings
 from pharmagraphrag.data.clean_faers import OUTCOME_DESCRIPTIONS
@@ -28,7 +28,7 @@ BATCH_SIZE = 5000
 
 
 def _get_driver(uri: str | None = None, user: str | None = None,
-                password: str | None = None) -> GraphDatabase.driver:
+                password: str | None = None) -> Driver:
     """Create a Neo4j driver instance."""
     settings = get_settings()
     return GraphDatabase.driver(

@@ -49,6 +49,7 @@ CON RAG:
 ```
 
 ### ¿Por qué es mejor?
+
 - **Fundamentado en datos reales** (no se inventa nada)
 - **Con fuentes citables** (puedes verificar)
 - **Actualizable** (solo tienes que actualizar tus datos, no reentrenar el LLM)
@@ -60,6 +61,7 @@ CON RAG:
 **GraphRAG** es RAG pero usando un **grafo de conocimiento** como una de las fuentes de datos. Esto es lo que hace especial a nuestro proyecto.
 
 ### RAG normal (solo vector)
+
 ```
 Pregunta → Buscar en ChromaDB → Chunks de texto → LLM → Respuesta
 ```
@@ -67,6 +69,7 @@ Pregunta → Buscar en ChromaDB → Chunks de texto → LLM → Respuesta
 **Problema**: Solo tienes texto. No sabes las relaciones entre entidades. Si preguntas "¿Qué otros fármacos causan los mismos efectos que aspirin?", tendrías que tener un chunk de texto que diga exactamente eso.
 
 ### GraphRAG (grafo + vector)
+
 ```
 Pregunta → Extraer entidades (ASPIRIN)
          → Buscar en Neo4j: ASPIRIN → [CAUSES] → HEADACHE ← [CAUSES] ← IBUPROFEN
@@ -157,12 +160,14 @@ ASPIRIN --[HAS_OUTCOME {report_count: 50}]--> DEATH
 ```
 
 **Para qué es bueno**:
+
 - Preguntas sobre **relaciones**: "¿Con qué interactúa warfarin?"
 - Preguntas de **agregación**: "¿Cuáles son los efectos adversos más reportados?"
 - **Traversal multi-hop**: "¿Qué fármacos causan los mismos efectos que aspirin?"
 - Datos **cuantitativos**: "¿Cuántos reportes de muerte tiene el metformin?"
 
 **Para qué NO es bueno**:
+
 - Preguntas vagas: "¿Es seguro el ibuprofeno para personas mayores?"
 - Contexto detallado: "¿Qué dice la etiqueta sobre la dosis?"
 - Búsqueda por significado: "medicamentos para la presión arterial"
@@ -179,12 +184,14 @@ ASPIRIN --[HAS_OUTCOME {report_count: 50}]--> DEATH
 ```
 
 **Para qué es bueno**:
+
 - Búsqueda por **significado** (no palabras exactas)
 - Encontrar **contexto explicativo** (mecanismos, advertencias, dosis)
 - Preguntas en **lenguaje natural**
 - Proporcionar **texto citable** al LLM
 
 **Para qué NO es bueno**:
+
 - Relaciones exactas entre entidades
 - Datos cuantitativos (no sabe que hay 500 reportes)
 - Consultas multi-hop
@@ -192,7 +199,7 @@ ASPIRIN --[HAS_OUTCOME {report_count: 50}]--> DEATH
 ### La combinación: 1 + 1 = 3
 
 | Pregunta | Solo Neo4j | Solo ChromaDB | **GraphRAG (ambos)** |
-|----------|-----------|---------------|---------------------|
+| ---------- | ----------- | --------------- | --------------------- |
 | "¿Warfarin interactúa con aspirin?" | ✅ Sí, hay relación INTERACTS_WITH | ✅ Sí, el texto lo menciona | ✅✅ Sí, con datos + explicación detallada |
 | "¿Cuántos reportes de sangrado tiene warfarin?" | ✅ 1,200 reportes | ❌ No tiene datos numéricos | ✅ 1,200 reportes + contexto sobre el riesgo |
 | "¿Es seguro mezclar ibuprofeno con alcohol?" | ❌ No hay nodo "alcohol" | ✅ La etiqueta menciona el riesgo | ✅ Contexto relevante de varias fuentes |
@@ -240,17 +247,21 @@ Paso 5 - LLM GENERATION
 ## Conceptos clave para entender bien
 
 ### 1. Grounding (Fundamentación)
+
 El principio de que la respuesta del LLM debe estar **basada en datos verificables**, no en su conocimiento general. Si le dices "responde SOLO basándote en este contexto" y le das el contexto correcto, el LLM no alucina (o alucina mucho menos).
 
 ### 2. Retrieval vs Generation
+
 - **Retrieval** = buscar información relevante (no genera texto nuevo)
 - **Generation** = crear texto nuevo basado en la información encontrada
 - RAG = primero busco, luego genero
 
 ### 3. Embeddings como "fingerprints" de significado
+
 Cada texto se convierte en una "huella dactilar" numérica. Textos con significado similar tienen huellas similares. Esto permite buscar por concepto, no por palabras exactas.
 
 ### 4. Knowledge Graph como "mapa de relaciones"
+
 El grafo es como un mapa donde los nodos son entidades (fármacos, efectos) y las flechas son relaciones (causa, interactúa). Puedes navegar el mapa para descubrir conexiones que no serían obvias solo leyendo texto.
 
 ---
@@ -258,7 +269,7 @@ El grafo es como un mapa donde los nodos son entidades (fármacos, efectos) y la
 ## ¿Dónde encaja cada tecnología?
 
 | Tecnología | Rol | Analogía |
-|-----------|-----|---------|
+| ----------- | ----- | --------- |
 | **Neo4j** | Almacena relaciones entre entidades | El mapa de una ciudad (calles conectan lugares) |
 | **ChromaDB** | Almacena texto buscable por significado | Una biblioteca con un bibliotecario que entiende lo que buscas |
 | **sentence-transformers** | Convierte texto → números (embeddings) | Un traductor que convierte idioma humano → idioma de máquina |
