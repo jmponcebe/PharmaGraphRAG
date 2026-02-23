@@ -1,107 +1,245 @@
-# Professional Profile — Copilot Instructions
+# PharmaGraphRAG — Copilot Instructions
 
-## About Me
+## Project Overview
+PharmaGraphRAG is a GraphRAG system for querying drug interactions and adverse events using FDA data. It combines a Neo4j knowledge graph with vector search (ChromaDB) and LLM-powered answers (Gemini API / Ollama).
+
+## Author
 - **Name**: Jose María Ponce Bernabé
-- **Location**: Murcia, Spain
-- **Languages**: Spanish (native), English (B2 — FCE), French (B2 — DELF)
-- **Email**: jmponcebe@gmail.com
-- **GitHub**: github.com/jmponcebe
-- **LinkedIn**: linkedin.com/in/jmponcebe
+- **Background**: Biotechnology + Bioinformatics + Knowledge Engineering (BASF, NTT DATA) + MLOps (DengueMLOps TFM)
+- **Goal**: Portfolio project to demonstrate GenAI/RAG skills and bridge KG experience with LLM integration
 
-## Professional Background
+## Architecture
 
-### Current Status (2025)
-Recently graduated from **Master in Data Science and Cloud Data Engineering** at **Universidad de Castilla-La Mancha (CIDaeN)**. Looking for ML Engineer, MLOps Engineer, or Data Engineer roles.
+```
+FDA FAERS (CSV) + DailyMed (API)
+        ↓
+    Data Pipeline (ingestion + cleaning)
+        ↓
+┌───────────────────┐  ┌──────────────────┐
+│  Neo4j (KG)       │  │  ChromaDB        │
+│  Drug, Adverse    │  │  Drug label      │
+│  Event, Category  │  │  embeddings      │
+│  relationships    │  │  (chunks)        │
+└────────┬──────────┘  └────────┬─────────┘
+         │      GraphRAG        │
+         └──────────┬───────────┘
+                    ↓
+         Query Engine (entity extraction
+         + graph traversal + vector search
+         + context merging)
+                    ↓
+         LLM (Gemini API / Ollama)
+                    ↓
+         FastAPI + Streamlit
+```
 
-### Education
-1. **MSc Data Science & Cloud Data Engineering** — UCLM (CIDaeN), Oct 2024 – Feb 2026
-   - Thesis: DengueMLOps — End-to-end MLOps pipeline for dengue prediction in Brazil
-   - Focus: ML, Cloud (AWS), MLOps, Data Pipelines
-2. **MSc Bioinformatics** — University of Murcia, Sep 2020 – Sep 2023, GPA 9.03/10
-   - Stats, ML (R, caret, keras), HPC (SLURM), Docker, Unix, Git
-   - Thesis: Ontology of units of measurement in the chemical industry
-3. **BSc Biotechnology** — University of Murcia, Sep 2015 – Jun 2020, GPA 7.35/10
-   - Erasmus+ at Université Paris-Est Créteil (2017–2018)
+## Tech Stack
+- **Language**: Python 3.11+
+- **Knowledge Graph**: Neo4j (Docker container)
+- **Vector Store**: ChromaDB (embedded)
+- **Embeddings**: sentence-transformers (all-MiniLM-L6-v2)
+- **LLM Primary**: Google Gemini API (free tier, google-generativeai SDK)
+- **LLM Backup**: Ollama + Llama 3 / Mistral (local)
+- **API**: FastAPI with Pydantic v2
+- **UI**: Streamlit
+- **Containers**: Docker Compose (Neo4j + app + optional Ollama)
+- **CI/CD**: GitHub Actions
+- **Testing**: pytest
+- **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
 
-### Work Experience
-1. **Semantic Solutions Developer** — NTT DATA (SEMBU), Jan 2023 – Mar 2024, Barcelona
-   - Python microservices for knowledge graph construction (Flask, RDFLib, Owlready2)
-   - Data pipelines for RDF/OWL → GraphDB, Elasticsearch/OpenSearch
-   - SPARQL/GraphQL APIs, SHACL validation, FAIR/DCAT standards
-2. **Knowledge Engineer / Ontologist** — BASF Digital Solutions, Jun 2021 – Dec 2022, Madrid
-   - Co-developed GOMO (Governance Operational Model for Ontologies), published ISWC 2022
-   - Production ontologies with Protégé, Python (RDFLib, kglab, morph-kgc)
-   - RML/YARRRML data-to-graph transformations, Streamlit internal tools, Graphistry visualizations
-3. **Research Intern (Bioinformatics)** — University of Murcia, Oct 2020 – Jun 2021
-4. **Research Intern (Agriculture)** — CEBAS-CSIC, Oct 2018 – Jan 2019
+## Data Sources
+1. **FDA FAERS**: https://fis.fda.gov/extensions/FPD-QDE-FAERS/FPD-QDE-FAERS.html
+   - Quarterly CSV files with drug adverse event reports
+   - Key tables: DRUG, REAC (reactions), OUTC (outcomes), DEMO (demographics)
+2. **DailyMed**: https://dailymed.nlm.nih.gov/dailymed/
+   - Drug label information (interactions, warnings, contraindications)
+   - REST API available
 
-### Publication
-- "Ontology Management in an Industrial Environment: The BASF GOMO" — ISWC 2022
+## Project Structure
 
-### Certification
-- AWS Academy Cloud Foundations (Jan 2025)
+```
+PharmaGraphRAG/
+├── .github/
+│   ├── copilot-instructions.md    # This file
+│   └── workflows/
+│       └── ci.yml                 # GitHub Actions: lint + test + build
+├── data/
+│   ├── raw/                       # Downloaded FAERS CSVs, DailyMed JSONs (gitignored)
+│   ├── processed/                 # Cleaned Parquet files (gitignored)
+│   └── sample/                    # Small sample for testing (committed)
+├── src/
+│   ├── __init__.py
+│   ├── config.py                  # Settings (Pydantic BaseSettings, env vars)
+│   ├── ingestion/
+│   │   ├── __init__.py
+│   │   ├── faers.py               # Download + parse FAERS data
+│   │   └── dailymed.py            # Fetch drug labels from DailyMed API
+│   ├── graph/
+│   │   ├── __init__.py
+│   │   ├── schema.py              # Neo4j schema definition (constraints, indexes)
+│   │   ├── loader.py              # Load data into Neo4j
+│   │   └── queries.py             # Cypher query functions
+│   ├── vectorstore/
+│   │   ├── __init__.py
+│   │   ├── chunker.py             # Text chunking for drug labels
+│   │   ├── embedder.py            # Embedding generation
+│   │   └── store.py               # ChromaDB operations
+│   ├── rag/
+│   │   ├── __init__.py
+│   │   ├── entity_extractor.py    # Extract drug/condition entities from query
+│   │   ├── graph_retriever.py     # Neo4j context retrieval
+│   │   ├── vector_retriever.py    # ChromaDB context retrieval
+│   │   ├── context_merger.py      # Combine graph + vector contexts
+│   │   └── generator.py           # LLM answer generation (Gemini + Ollama)
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── main.py                # FastAPI app
+│   │   ├── routes.py              # API endpoints
+│   │   └── models.py              # Pydantic request/response models
+│   └── ui/
+│       └── app.py                 # Streamlit dashboard
+├── tests/
+│   ├── conftest.py                # Fixtures (sample data, mock Neo4j)
+│   ├── test_ingestion/
+│   ├── test_graph/
+│   ├── test_vectorstore/
+│   ├── test_rag/
+│   └── test_api/
+├── docker/
+│   ├── Dockerfile                 # App container
+│   └── Dockerfile.ollama          # Ollama container (optional)
+├── scripts/
+│   ├── download_faers.py          # One-off data download
+│   ├── load_graph.py              # Populate Neo4j from processed data
+│   └── load_vectorstore.py        # Populate ChromaDB from drug labels
+├── notebooks/                     # Exploration notebooks (gitignored or sample only)
+├── .env.example                   # Environment variables template
+├── .gitignore
+├── docker-compose.yml             # Neo4j + ChromaDB + App + Streamlit (+ Ollama)
+├── pyproject.toml                 # Project config (dependencies, tools)
+├── README.md
+└── docs/
+    └── plan.md                    # Project plan (moved from cv repo)
+```
 
-## Key Technical Skills
-- **Python** (3+ years production): microservices, APIs, data pipelines, ML
-- **MLOps**: MLflow, Evidently, Prefect, GitHub Actions, Docker, CI/CD
-- **Cloud**: AWS (S3, ECR, ECS/Fargate, CloudFormation IaC)
-- **ML**: XGBoost, Scikit-learn, TensorFlow, Optuna, Pandas, NumPy
-- **Apps**: FastAPI, Streamlit, Flask, Pydantic, Plotly
-- **Data**: SQL, Spark/PySpark, Parquet, MongoDB, ETL, Elasticsearch, GraphDB, Databricks
-- **Semantic Tech**: RDF, OWL, SPARQL, SHACL, Knowledge Graphs
-- **Tools**: Git, GitHub, Docker Compose, Linux/Unix, LaTeX
+## Code Style & Conventions
 
-## TFM Project: DengueMLOps
-End-to-end MLOps pipeline for dengue alert prediction in Brazil:
-- **Data**: 4.5M weekly records from Mosqlimate API, 5,500+ municipalities (2010–2025)
-- **Features**: 15 engineered features with zero target leakage, climate lags based on vector biology
-- **Model**: XGBoost with balanced sample weights, Optuna-tuned (40 trials), macro_f1=0.39
-- **Tracking**: 5 MLflow experiments, 90+ runs, Model Registry with champion alias
-- **Serving**: FastAPI REST API + Streamlit dashboard with Brazil choropleth map
-- **Containers**: Multi-image Docker, Compose orchestration, health checks
-- **CI/CD**: GitHub Actions — tests/lint/build on push, ECR/ECS deploy on tags
-- **Cloud**: AWS ECS/Fargate + S3 + ECR, CloudFormation IaC, automated deploy scripts
-- **Monitoring**: Evidently data drift (KS + chi²), prediction logging with auto-flush
-- **Tests**: 88 unit tests, 97% coverage on feature engineering
-- **Repo**: https://github.com/jmponcebe/DengueMLOps
+### Python
+- Use type hints everywhere (PEP 484)
+- Pydantic v2 for all data models and settings
+- f-strings for formatting
+- Use pathlib.Path for file paths
+- Docstrings: Google style
+- Max line length: 88 (black default)
+- Linting: ruff
+- Formatting: black
+- Import sorting: isort (profile=black)
 
-## Unique Value Proposition
-Combination of domain science (biotechnology), knowledge engineering (ontologies, knowledge graphs), and modern ML operations. Can bridge the gap between domain experts and ML infrastructure. Understands data quality, metadata standards, and scalable data modeling from both academic and enterprise perspectives.
+### Naming
+- Modules: snake_case
+- Classes: PascalCase
+- Functions/variables: snake_case
+- Constants: UPPER_SNAKE_CASE
+- Neo4j labels: PascalCase (Drug, AdverseEvent)
+- Neo4j relationships: UPPER_SNAKE_CASE (CAUSES, INTERACTS_WITH)
 
-## Career Hub Structure
-This repo is organized as a career management hub:
-- `cv/cv_en.tex` — English CV (LaTeX, Palatino, A4)
-- `cv/cv_es.tex` — Spanish CV (LaTeX, Palatino, A4)
-- `cover-letters/templates/` — Reusable cover letter templates (EN/ES)
-- `cover-letters/applications/` — Company-specific cover letters (YYYY-MM_company_role.tex)
-- `linkedin/profile_en.md` — LinkedIn profile content (English)
-- `linkedin/profile_es.md` — LinkedIn profile content (Spanish)
-- `linkedin/posts/` — Draft LinkedIn posts
-- `applications/tracker.md` — Application tracking (status, company, notes)
-- `interview-prep/` — Study notes (ML fundamentals, system design, Spark)
-- `assets/` — LinkedIn banner, icons
-- `scripts/generate_banner.py` — LinkedIn banner generator (Pillow)
-- `.github/copilot-instructions.md` — This file
+### Architecture Patterns
+- Config via environment variables (.env file, Pydantic BaseSettings)
+- Dependency injection for Neo4j driver, ChromaDB client, LLM client
+- Each module should be independently testable
+- Separate retrieval (graph + vector) from generation (LLM)
+- Async FastAPI endpoints where I/O bound
 
-## Code Style for LaTeX
-- Use `\CVSubheading`, `\CVItem`, `\CVItemListStart/End` macros consistently
-- Keep bullet points concise: start with action verb, include measurable impact
-- Spanish CV bullets must use action verbs (first person past tense: "Diseñé", "Desarrollé", etc.)
-- One page for CV (two max if needed for academic version)
-- Use fontawesome5 for contact icons
-- Compile with pdflatex (palatino font, standard packages)
-- Cover letters use `\newcommand` variables for easy per-application customization
-- Spanish numbers: comma as decimal separator (4,5M), dot as thousands separator (5.500)
+### Neo4j Schema
+```cypher
+// Nodes
+(:Drug {name: string, drugbank_id: string?, category: string?})
+(:AdverseEvent {name: string, meddra_code: string?})
+(:DrugCategory {name: string})
 
-## Target Roles
-- ML Engineer
-- MLOps Engineer
-- Data Engineer (ML/AI focus)
-- Platform Engineer (ML)
+// Relationships
+(:Drug)-[:CAUSES {report_count: int, severity: string?}]->(:AdverseEvent)
+(:Drug)-[:INTERACTS_WITH {source: string, description: string?}]->(:Drug)
+(:Drug)-[:BELONGS_TO]->(:DrugCategory)
+```
 
-## Key Messages for Applications
-1. **Not a fresh grad**: 3 years production Python experience (BASF + NTT DATA)
-2. **End-to-end builder**: From data ingestion to cloud deployment and monitoring
-3. **Domain versatile**: Worked in chemical industry (BASF), consulting (NTT DATA), epidemiology (TFM)
-4. **Research + Industry**: Published at ISWC, but focused on practical engineering
-5. **Trilingual**: ES/EN/FR — valuable for international teams
+### Docker
+- Multi-stage builds for production image
+- Non-root user in containers
+- Health checks for all services
+- Volume mounts for Neo4j data persistence
+- .env file for configuration (never committed)
+
+### Git
+- Conventional commits (feat:, fix:, docs:, refactor:, test:, ci:)
+- Branch: main (protected) + feature branches
+- PR required for main (even self-merge is fine)
+- .gitignore: data/raw/, data/processed/, .env, __pycache__, .pytest_cache
+
+### Testing
+- pytest with fixtures for sample data and mocked services
+- Test Neo4j with testcontainers or mock
+- Test LLM with mock responses (don't call real API in tests)
+- Minimum coverage target: 80%
+
+## Key Design Decisions
+
+1. **Neo4j over RDFLib**: Learning new skill (more marketable). Can fallback to RDFLib if Neo4j proves too complex in the timeline.
+2. **ChromaDB over Pinecone/Qdrant**: Embedded (no extra infra), SQLite-backed, good enough for portfolio scale.
+3. **Gemini API over OpenAI**: Free tier is generous. Ollama as local backup removes vendor lock-in.
+4. **Dual retrieval (graph + vector)**: The core differentiator. Graph provides structured context (relationships), vector provides unstructured context (text chunks). Merging both gives better answers than either alone.
+5. **sentence-transformers over OpenAI embeddings**: Free, local, fast. all-MiniLM-L6-v2 is the standard baseline.
+
+## LLM Configuration
+
+### Gemini API
+- Model: gemini-2.0-flash (fast, free tier)
+- API key via GEMINI_API_KEY env var
+- SDK: google-generativeai
+
+### Ollama (backup)
+- Model: llama3:8b or mistral:7b
+- Run in Docker or host
+- Base URL via OLLAMA_BASE_URL env var
+
+### Prompt Template (draft)
+```
+You are a pharmaceutical knowledge assistant. Answer the user's question about drug interactions and adverse events based ONLY on the provided context.
+
+GRAPH CONTEXT (structured relationships):
+{graph_context}
+
+TEXT CONTEXT (from drug labels):
+{text_context}
+
+USER QUESTION: {question}
+
+Provide a clear, accurate answer. Cite specific drugs and adverse events from the context. If the context doesn't contain enough information to answer, say so explicitly.
+```
+
+## Environment Variables (.env.example)
+```
+# LLM
+GEMINI_API_KEY=your-key-here
+OLLAMA_BASE_URL=http://ollama:11434
+LLM_PROVIDER=gemini  # gemini or ollama
+LLM_MODEL=gemini-2.0-flash
+
+# Neo4j
+NEO4J_URI=bolt://neo4j:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=pharmagraphrag
+
+# ChromaDB
+CHROMA_PERSIST_DIR=./data/chroma
+
+# App
+API_HOST=0.0.0.0
+API_PORT=8000
+STREAMLIT_PORT=8501
+```
+
+## Related Projects
+- **DengueMLOps**: https://github.com/jmponcebe/DengueMLOps — MLOps pipeline (same author)
+- **Microsoft GraphRAG**: https://github.com/microsoft/graphrag — Reference implementation
+- **LlamaIndex Knowledge Graph**: https://docs.llamaindex.ai/en/stable/examples/index_structs/knowledge_graph/
