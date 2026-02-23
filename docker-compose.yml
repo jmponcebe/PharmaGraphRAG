@@ -1,0 +1,49 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: pharmagraphrag-neo4j
+    ports:
+      - "7474:7474"  # Browser
+      - "7687:7687"  # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/pharmagraphrag
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_server_memory_heap_initial__size: "512m"
+      NEO4J_server_memory_heap_max__size: "1G"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- Application services (uncomment when ready) ---
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.api
+  #   container_name: pharmagraphrag-api
+  #   ports:
+  #     - "8000:8000"
+  #   env_file: .env
+  #   depends_on:
+  #     neo4j:
+  #       condition: service_healthy
+  #
+  # ui:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.ui
+  #   container_name: pharmagraphrag-ui
+  #   ports:
+  #     - "8501:8501"
+  #   env_file: .env
+  #   depends_on:
+  #     - api
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
