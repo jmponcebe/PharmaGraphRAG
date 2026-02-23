@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # --- Embeddings ---
     embedding_model: str = "all-MiniLM-L6-v2"
 
+    # --- ChromaDB ---
+    chroma_persist_dir: str = "./data/chroma"
+
     # --- App ---
     log_level: str = "INFO"
 

@@ -1,4 +1,7 @@
 services:
+  # ---------------------------------------------------------------
+  # Neo4j — Knowledge Graph database
+  # ---------------------------------------------------------------
   neo4j:
     image: neo4j:5-community
     container_name: pharmagraphrag-neo4j
@@ -19,31 +22,79 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - pharma-net
 
-  # --- Application services (uncomment when ready) ---
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/Dockerfile.api
-  #   container_name: pharmagraphrag-api
-  #   ports:
-  #     - "8000:8000"
-  #   env_file: .env
-  #   depends_on:
-  #     neo4j:
-  #       condition: service_healthy
-  #
-  # ui:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/Dockerfile.ui
-  #   container_name: pharmagraphrag-ui
-  #   ports:
-  #     - "8501:8501"
-  #   env_file: .env
-  #   depends_on:
-  #     - api
+  # ---------------------------------------------------------------
+  # FastAPI — REST API backend
+  # ---------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: pharmagraphrag-api
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      CHROMA_PERSIST_DIR: /app/data/chroma
+    volumes:
+      - ./data/chroma:/app/data/chroma:ro
+      - ./data/raw/dailymed:/app/data/raw/dailymed:ro
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - pharma-net
+
+  # ---------------------------------------------------------------
+  # Streamlit — Chat UI
+  # ---------------------------------------------------------------
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    container_name: pharmagraphrag-ui
+    ports:
+      - "8501:8501"
+    env_file: .env
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      CHROMA_PERSIST_DIR: /app/data/chroma
+    volumes:
+      - ./data/chroma:/app/data/chroma:ro
+      - ./data/raw/dailymed:/app/data/raw/dailymed:ro
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - pharma-net
+
+  # ---------------------------------------------------------------
+  # Ollama — Local LLM (optional, profile: ollama)
+  # ---------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: pharmagraphrag-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    profiles:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          memory: 4G
+    networks:
+      - pharma-net
 
 volumes:
   neo4j_data:
   neo4j_logs:
+  ollama_models:
+
+networks:
+  pharma-net:
+    driver: bridge

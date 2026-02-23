@@ -1,11 +1,14 @@
-FROM python:3.13-slim
+# ============================================================
+# Stage 1 — build (install deps with ui extras)
+# ============================================================
+FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy dependency files
+# Copy dependency specs first → Docker layer cache
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies with UI extras (cached layer)
@@ -14,9 +17,39 @@ RUN uv sync --frozen --no-dev --extra ui --no-install-project
 # Copy source code
 COPY src/ src/
 
-# Install project
+# Install project with UI extras
 RUN uv sync --frozen --no-dev --extra ui
+
+# ============================================================
+# Stage 2 — runtime (slim, non-root)
+# ============================================================
+FROM python:3.13-slim AS runtime
+
+LABEL maintainer="Jose María Ponce Bernabé <jmponcebe@gmail.com>"
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --create-home appuser
+
+WORKDIR /app
+
+# Copy installed env from builder
+COPY --from=builder /app /app
+
+# Data directory (will be mounted)
+RUN mkdir -p /app/data && chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8501
 
-CMD ["uv", "run", "streamlit", "run", "src/pharmagraphrag/ui/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+CMD ["/app/.venv/bin/streamlit", "run", "src/pharmagraphrag/ui/app.py", \
+     "--server.port=8501", "--server.address=0.0.0.0", \
+     "--server.headless=true", "--browser.gatherUsageStats=false"]

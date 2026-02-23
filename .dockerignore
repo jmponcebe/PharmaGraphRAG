@@ -1,0 +1,39 @@
+# Version control
+.git
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Virtual environment
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Data (large files — mounted as volumes instead)
+data/raw/
+data/processed/
+data/chroma/
+
+# Node
+node_modules
+
+# Build artifacts
+dist/
+build/
+*.egg-info
+
+# Misc
+.env
+*.log
+docs/
+notebooks/
