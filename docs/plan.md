@@ -93,67 +93,67 @@ Sistema de pregunta-respuesta que combina un knowledge graph de fármacos con RA
 
 ### Semana 1: Datos + Knowledge Graph
 
-#### Día 1-2: Setup + ingestión de datos
+#### Dia 1-2: Setup + ingestion de datos
 
-- [ ] Crear repo GitHub con estructura del proyecto
-- [ ] Descargar FAERS (1-2 trimestres recientes)
-- [ ] Script de descarga/limpieza de FAERS → Parquet
-- [ ] Script de ingestión desde DailyMed API (top 100-500 fármacos)
+- [x] Crear repo GitHub con estructura del proyecto
+- [x] Descargar FAERS (1-2 trimestres recientes)
+- [x] Script de descarga/limpieza de FAERS -> Parquet
+- [x] Script de ingestion desde DailyMed API (top 100-500 farmacos)
 
-#### Día 3-4: Construcción del Knowledge Graph
+#### Dia 3-4: Construccion del Knowledge Graph
 
-- [ ] Levantar Neo4j en Docker
-- [ ] Definir schema del grafo: nodos (Drug, AdverseEvent, DrugCategory) y relaciones (CAUSES, INTERACTS_WITH, BELONGS_TO)
-- [ ] Script de carga de FAERS → Neo4j (Cypher)
-- [ ] Script de carga de interacciones DailyMed → Neo4j
-- [ ] Queries Cypher de validación
+- [x] Levantar Neo4j en Docker
+- [x] Definir schema del grafo: nodos (Drug, AdverseEvent, DrugCategory) y relaciones (CAUSES, INTERACTS_WITH, BELONGS_TO)
+- [x] Script de carga de FAERS -> Neo4j (Cypher)
+- [x] Script de carga de interacciones DailyMed -> Neo4j
+- [x] Queries Cypher de validacion
 
-#### Día 5: Vector store
+#### Dia 5: Vector store
 
-- [ ] Chunking de textos de drug labels (DailyMed)
-- [ ] Generar embeddings con sentence-transformers
-- [ ] Cargar en ChromaDB
-- [ ] Tests de similarity search
+- [x] Chunking de textos de drug labels (DailyMed)
+- [x] Generar embeddings con sentence-transformers
+- [x] Cargar en ChromaDB
+- [x] Tests de similarity search
 
 ### Semana 2: GraphRAG Engine + LLM
 
-#### Día 1-2: Query engine
+#### Dia 1-2: Query engine
 
-- [ ] Entity extraction de la pregunta del usuario (NER básico o regex + fuzzy matching sobre fármacos conocidos)
-- [ ] Graph traversal: dado un fármaco, obtener entidades relacionadas de Neo4j
-- [ ] Vector search: obtener chunks relevantes de ChromaDB
-- [ ] Context merging: combinar info del grafo + chunks en un prompt
+- [x] Entity extraction de la pregunta del usuario (NER basico o regex + fuzzy matching sobre farmacos conocidos)
+- [x] Graph traversal: dado un farmaco, obtener entidades relacionadas de Neo4j
+- [x] Vector search: obtener chunks relevantes de ChromaDB
+- [x] Context merging: combinar info del grafo + chunks en un prompt
 
-#### Día 3-4: Integración LLM
+#### Dia 3-4: Integracion LLM
 
-- [ ] Integrar Gemini API (google-generativeai SDK)
-- [ ] Integrar Ollama como fallback
-- [ ] Prompt engineering para respuesta fundamentada (con citas de los datos)
-- [ ] Evaluación básica: 10-20 preguntas de test con respuestas esperadas
+- [x] Integrar Gemini API (google-genai SDK)
+- [x] Integrar Ollama como fallback
+- [x] Prompt engineering para respuesta fundamentada (con citas de los datos)
+- [x] Evaluacion basica: 10-20 preguntas de test con respuestas esperadas
 
-#### Día 5: FastAPI
+#### Dia 5: FastAPI
 
-- [ ] Endpoint POST /query con pregunta → respuesta + fuentes
-- [ ] Endpoint GET /drug/{name} con info del grafo
-- [ ] Health check + docs OpenAPI
+- [x] Endpoint POST /query con pregunta -> respuesta + fuentes
+- [x] Endpoint GET /drug/{name} con info del grafo
+- [x] Health check + docs OpenAPI
 
 ### Semana 3: UI + Docker + Polish
 
-#### Día 1-2: Streamlit
+#### Dia 1-2: Streamlit
 
-- [ ] Interfaz de chat para preguntas
-- [ ] Visualización del subgrafo relevante (pyvis o streamlit-agraph)
-- [ ] Mostrar fuentes/evidencia usada para la respuesta
+- [x] Interfaz de chat para preguntas
+- [x] Visualizacion del subgrafo relevante (pyvis o streamlit-agraph)
+- [x] Mostrar fuentes/evidencia usada para la respuesta
 
-#### Día 3-4: Docker + testing
+#### Dia 3-4: Docker + testing
 
-- [ ] Docker Compose: Neo4j + ChromaDB + FastAPI + Streamlit
-- [ ] Tests: pipeline de datos, query engine, API
-- [ ] README completo con screenshots, arquitectura, instrucciones de setup
+- [x] Docker Compose: Neo4j + ChromaDB + FastAPI + Streamlit
+- [x] Tests: pipeline de datos, query engine, API (142 tests)
+- [x] README completo con screenshots, arquitectura, instrucciones de setup
 
-#### Día 5: CI/CD + lanzamiento
+#### Dia 5: CI/CD + lanzamiento
 
-- [ ] GitHub Actions: lint + test + build
+- [x] GitHub Actions: lint + test matrix (3.11/3.13) + Docker build (Buildx)
 - [ ] Post de LinkedIn sobre el proyecto
 - [ ] Actualizar CV si procede
 

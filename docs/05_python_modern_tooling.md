@@ -376,7 +376,7 @@ def test_save_file(tmp_path):
     # tmp_path se elimina automáticamente después del test
 ```
 
-### Nuestros 64 tests
+### Nuestros 142 tests
 
 | Archivo | Tests | Qué cubren |
 |---------|-------|-----------|
@@ -384,7 +384,11 @@ def test_save_file(tmp_path):
 | test_clean_faers.py | 13 | Normalización nombres, deduplicación, mapping outcomes |
 | test_ingest_dailymed.py | 12 | Parsing API, guardar JSON, manejo errores (mocked HTTP) |
 | test_vectorstore.py | 35 | Chunking, embeddings, ChromaDB add/search/filter |
-| **Total** | **64** | |
+| test_engine.py | 37 | Entity extraction, retrieval, prompt assembly |
+| test_llm.py | 14 | Gemini, Ollama, fallback chain (mocked APIs) |
+| test_api.py | 13 | FastAPI endpoints, TestClient |
+| test_ui.py | 14 | Streamlit components, session state |
+| **Total** | **142** | |
 
 ---
 
@@ -509,27 +513,42 @@ services:
 ### CI/CD: GitHub Actions
 
 ```yaml
-# .github/workflows/ci.yml
+# .github/workflows/ci.yml (simplificado)
 name: CI
 on: [push, pull_request]
 
 jobs:
-  test:
+  lint-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4     # Instalar uv
-      - run: uv sync --extra dev
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --extra dev --extra ui
       - run: uv run ruff check src/ tests/
-      - run: uv run mypy src/
-      - run: uv run pytest --cov
+      - run: uv run ruff format --check src/ tests/
+      - run: uv run pytest --cov --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with: { name: coverage, path: coverage.xml }
+
+  docker-build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - run: docker buildx build -f docker/Dockerfile.api .
+      - run: docker buildx build -f docker/Dockerfile.ui .
 ```
 
 Cada vez que haces `git push`, GitHub **automáticamente**:
-1. Crea una máquina virtual limpia
+1. Crea máquinas virtuales (Python 3.11 y 3.13)
 2. Instala uv y dependencias
-3. Ejecuta linting, type checking, y tests
-4. Te dice si algo falló (❌) o todo está bien (✅)
+3. Ejecuta linting (ruff check + format)
+4. Ejecuta 142 tests con cobertura
+5. Construye imágenes Docker (multi-stage con Buildx + GHA cache)
+6. Te dice si algo falló (❌) o todo está bien (✅)
 
 ---
 

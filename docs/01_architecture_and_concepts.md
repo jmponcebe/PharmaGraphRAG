@@ -207,37 +207,33 @@ ASPIRIN --[HAS_OUTCOME {report_count: 50}]--> DEATH
 
 ---
 
-## Flujo de una pregunta (lo que construiremos en la Semana 2)
+## Flujo de una pregunta (implementado)
 
 ```
 Usuario: "¿Puedo tomar ibuprofeno con warfarina?"
 
-Paso 1 - ENTITY EXTRACTION
+Paso 1 - ENTITY EXTRACTION  (engine/entity_extractor.py)
   Input:  "¿Puedo tomar ibuprofeno con warfarina?"
   Output: entidades = ["IBUPROFEN", "WARFARIN"]
-  Cómo:   El LLM o un NER extrae los nombres de fármacos
+  Cómo:   Exact substring match + fuzzy matching (rapidfuzz, threshold=80)
 
-Paso 2 - GRAPH RETRIEVAL (Neo4j)
+Paso 2 - GRAPH RETRIEVAL  (engine/retriever.py -> graph/queries.py)
   Para cada entidad, buscar en el grafo:
-  - get_drug_info("IBUPROFEN")     → Drug node con propiedades
-  - get_drug_info("WARFARIN")      → Drug node con propiedades
-  - get_drug_interactions("WARFARIN") → INTERACTS_WITH IBUPROFEN? (buscar)
-  - get_drug_adverse_events("IBUPROFEN") → top N efectos adversos
-  - get_drug_adverse_events("WARFARIN")  → top N efectos adversos
+  - get_drug_full_context("IBUPROFEN")  → Drug node + adverse events + interactions
+  - get_drug_full_context("WARFARIN")   → Drug node + adverse events + interactions
   Resultado: texto estructurado con relaciones
 
-Paso 3 - VECTOR RETRIEVAL (ChromaDB)
-  search("ibuprofen warfarin interaction risk", n_results=5)
+Paso 3 - VECTOR RETRIEVAL  (engine/retriever.py -> vectorstore/store.py)
+  search("ibuprofen warfarin interaction risk", n_results=5, drug_names=["IBUPROFEN", "WARFARIN"])
   Resultado: 5 chunks de texto relevantes de las etiquetas
 
-Paso 4 - CONTEXT MERGING
-  Combinar el contexto del grafo + contexto del vector en un
-  prompt coherente, eliminando duplicados
+Paso 4 - PROMPT ASSEMBLY  (engine/query_engine.py)
+  SYSTEM_PROMPT + CONTEXT_TEMPLATE + USER_TEMPLATE
+  Combinar contexto del grafo + vector en un prompt coherente
 
-Paso 5 - LLM GENERATION
-  Prompt: "Basándote SOLO en este contexto, responde:"
-  + contexto combinado
-  + pregunta del usuario
+Paso 5 - LLM GENERATION  (llm/client.py)
+  generate_answer(system_prompt, user_prompt)
+  Gemini (primary) -> Ollama (fallback) -> Error
   
   LLM responde con: explicación + datos + fuentes
 ```
@@ -277,3 +273,18 @@ El grafo es como un mapa donde los nodos son entidades (fármacos, efectos) y la
 | **FastAPI** | Expone todo como API web | La recepcionista que recibe tu pregunta y te devuelve la respuesta |
 | **Streamlit** | Interfaz visual para el usuario | La pantalla bonita donde escribes tu pregunta |
 | **Docker** | Empaqueta todo para que funcione en cualquier PC | Una caja que contiene todo lo necesario para que funcione |
+
+---
+
+## Implementación real
+
+Todos los componentes descritos en este documento están implementados:
+
+| Componente | Código fuente | Documentación detallada |
+|------------|---------------|------------------------|
+| Data Pipeline | `src/pharmagraphrag/data/` | [02_data_pipeline.md](02_data_pipeline.md) |
+| Knowledge Graph | `src/pharmagraphrag/graph/` | [03_knowledge_graphs_neo4j.md](03_knowledge_graphs_neo4j.md) |
+| Vector Store | `src/pharmagraphrag/vectorstore/` | [04_embeddings_and_vector_search.md](04_embeddings_and_vector_search.md) |
+| Query Engine + LLM | `src/pharmagraphrag/engine/` + `llm/` | [06_query_engine_and_llm.md](06_query_engine_and_llm.md) |
+| API + UI | `src/pharmagraphrag/api/` + `ui/` | [07_api_and_ui.md](07_api_and_ui.md) |
+| Docker + CI/CD | `docker/` + `.github/workflows/` | [05_python_modern_tooling.md](05_python_modern_tooling.md) |
