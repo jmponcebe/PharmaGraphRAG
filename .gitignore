@@ -26,6 +26,7 @@ neo4j_data/
 
 # === ChromaDB local data ===
 chroma_data/
+data/chroma/
 
 # === Environment variables ===
 .env
