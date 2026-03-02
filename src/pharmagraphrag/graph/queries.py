@@ -209,12 +209,12 @@ def search_drugs(query: str, limit: int = 10) -> list[str]:
             result = session.run(
                 """
                 MATCH (d:Drug)
-                WHERE toUpper(d.name) CONTAINS toUpper($query)
+                WHERE toUpper(d.name) CONTAINS toUpper($search_term)
                 RETURN d.name AS name
                 ORDER BY d.name
                 LIMIT $limit
                 """,
-                query=query,
+                search_term=query,
                 limit=limit,
             )
             return [record["name"] for record in result]

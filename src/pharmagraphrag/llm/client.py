@@ -20,7 +20,7 @@ from loguru import logger
 from pharmagraphrag.config import get_settings
 
 # Default models per provider
-DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_OLLAMA_MODEL = "llama3:8b"
 
 
@@ -66,7 +66,7 @@ def _generate_gemini(
     Args:
         system_prompt: System instruction for the model.
         user_prompt: User message.
-        model: Model name (defaults to ``gemini-2.0-flash``).
+        model: Model name (defaults to ``gemini-2.5-flash``).
         api_key: Gemini API key (falls back to settings).
 
     Returns:

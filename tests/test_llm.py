@@ -158,7 +158,7 @@ class TestGenerateAnswer:
         mock_settings.return_value.llm_provider = "gemini"
         mock_gemini.return_value = LLMResponse(
             text="answer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
         )
 
@@ -189,7 +189,7 @@ class TestGenerateAnswer:
         """Falls back to the other provider when primary fails."""
         mock_settings.return_value.llm_provider = "gemini"
         mock_gemini.return_value = LLMResponse(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
             error="API key invalid",
         )
@@ -208,7 +208,7 @@ class TestGenerateAnswer:
         """Explicit provider overrides config."""
         mock_gemini.return_value = LLMResponse(
             text="answer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
         )
 

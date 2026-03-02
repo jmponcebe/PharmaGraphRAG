@@ -277,7 +277,7 @@ PharmaGraphRAG/
 ## LLM Configuration
 
 ### Gemini API
-- Model: gemini-2.0-flash (fast, free tier)
+- Model: gemini-2.5-flash (fast, free tier)
 - API key via GEMINI_API_KEY env var
 - SDK: google-genai (>= 1.64.0)
 - Temperature: 0.3, max_output_tokens: 2048
@@ -313,7 +313,7 @@ Rules:
 GEMINI_API_KEY=your-key-here
 OLLAMA_BASE_URL=http://ollama:11434    # Docker: http://ollama:11434
 LLM_PROVIDER=gemini                    # gemini or ollama
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-2.5-flash
 
 # Neo4j
 NEO4J_URI=bolt://localhost:7687        # Docker: bolt://neo4j:7687

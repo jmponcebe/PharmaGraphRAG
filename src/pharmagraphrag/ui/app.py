@@ -78,37 +78,37 @@ def _render_sidebar() -> None:
         width=64,
     )
     st.sidebar.title("PharmaGraphRAG")
-    st.sidebar.caption("GraphRAG para interacciones farmacológicas")
+    st.sidebar.caption("GraphRAG for drug interactions & adverse events")
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("⚙️ Configuración")
+    st.sidebar.subheader("⚙️ Settings")
 
     s = st.session_state.settings
 
     s["use_graph"] = st.sidebar.checkbox(
-        "Usar Knowledge Graph (Neo4j)",
+        "Use Knowledge Graph (Neo4j)",
         value=s["use_graph"],
         key="cb_graph",
     )
     s["use_vector"] = st.sidebar.checkbox(
-        "Usar Vector Search (ChromaDB)",
+        "Use Vector Search (ChromaDB)",
         value=s["use_vector"],
         key="cb_vector",
     )
     s["use_llm"] = st.sidebar.checkbox(
-        "Generar respuesta con LLM",
+        "Generate answer with LLM",
         value=s["use_llm"],
         key="cb_llm",
     )
     s["n_results"] = st.sidebar.slider(
-        "Resultados vector search",
+        "Vector search results",
         min_value=1,
         max_value=20,
         value=s["n_results"],
         key="sl_nresults",
     )
     s["llm_provider"] = st.sidebar.selectbox(
-        "Proveedor LLM",
+        "LLM Provider",
         ["gemini", "ollama"],
         index=0 if s["llm_provider"] == "gemini" else 1,
         key="sb_provider",
@@ -173,8 +173,8 @@ def _process_question(question: str) -> ChatMessage:
         else:
             # Retrieval-only mode: show the prompt context
             answer = (
-                "**Modo solo recuperación** (LLM desactivado).\n\n"
-                "Contexto recuperado:\n\n"
+                "**Retrieval-only mode** (LLM disabled).\n\n"
+                "Retrieved context:\n\n"
                 f"{result.user_prompt}"
             )
 
@@ -194,7 +194,7 @@ def _process_question(question: str) -> ChatMessage:
         logger.error("Error processing question: {}", exc)
         return ChatMessage(
             role="assistant",
-            content=f"❌ Error al procesar la consulta: {exc}",
+            content=f"❌ Error processing query: {exc}",
             error=str(exc),
         )
 
@@ -213,9 +213,9 @@ def _display_message(msg: ChatMessage) -> None:
             # Metadata badges
             badges: list[str] = []
             if msg.drugs_extracted:
-                badges.append(f"🏷️ Fármacos: {', '.join(msg.drugs_extracted)}")
+                badges.append(f"🏷️ Drugs: {', '.join(msg.drugs_extracted)}")
             if msg.drugs_found:
-                badges.append(f"📊 En grafo: {', '.join(msg.drugs_found)}")
+                badges.append(f"📊 In graph: {', '.join(msg.drugs_found)}")
             if msg.llm_provider:
                 badges.append(f"🤖 {msg.llm_provider}/{msg.llm_model}")
             if msg.error:
@@ -232,7 +232,7 @@ def _display_message(msg: ChatMessage) -> None:
                     render_sources,
                 )
 
-                tab_src, tab_graph = st.tabs(["📄 Fuentes", "🕸️ Grafo"])
+                tab_src, tab_graph = st.tabs(["📄 Sources", "🕸️ Graph"])
 
                 with tab_src:
                     render_sources(msg.sources_graph, msg.sources_vector)
@@ -254,8 +254,8 @@ def main() -> None:
     # Header
     st.title("💊 PharmaGraphRAG")
     st.caption(
-        "Consulta interacciones farmacológicas y eventos adversos "
-        "con Knowledge Graph + Vector Search + LLM."
+        "Query drug interactions and adverse events "
+        "with Knowledge Graph + Vector Search + LLM."
     )
 
     # Display chat history
@@ -263,7 +263,7 @@ def main() -> None:
         _display_message(msg)
 
     # Chat input
-    if prompt := st.chat_input("Haz una pregunta sobre fármacos…"):
+    if prompt := st.chat_input("Ask a question about drugs…"):
         # Add user message
         user_msg = ChatMessage(role="user", content=prompt)
         st.session_state.messages.append(user_msg)
@@ -272,7 +272,7 @@ def main() -> None:
             st.markdown(prompt)
 
         # Process and display assistant response
-        with st.spinner("Analizando consulta…"):
+        with st.spinner("Analyzing query…"):
             assistant_msg = _process_question(prompt)
 
         st.session_state.messages.append(assistant_msg)

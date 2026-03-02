@@ -41,7 +41,7 @@ def test_chat_message_with_sources():
         drugs_extracted=["IBUPROFEN"],
         drugs_found=["IBUPROFEN"],
         llm_provider="gemini",
-        llm_model="gemini-2.0-flash",
+        llm_model="gemini-2.5-flash",
     )
     assert msg.sources_graph["IBUPROFEN"]["drug_info"]["name"] == "IBUPROFEN"
     assert len(msg.sources_vector) == 1
@@ -244,7 +244,7 @@ class TestProcessQuestion:
 
         mock_llm = LLMResponse(
             text="Aspirin is an NSAID.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
         )
 

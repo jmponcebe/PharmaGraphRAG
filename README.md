@@ -4,10 +4,19 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-142%20passing-brightgreen.svg)](#testing)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
 > **GraphRAG system for querying drug interactions and adverse events using FDA data.**
 
-A question-answering system that combines a pharmaceutical knowledge graph (Neo4j) with Retrieval-Augmented Generation (RAG) to answer natural language questions about drug interactions and adverse events, grounded in real FDA data.
+A production-ready question-answering system that combines a **pharmaceutical knowledge graph** (Neo4j) with **Retrieval-Augmented Generation** (RAG) to answer natural language questions about drug interactions and adverse events — grounded in real **FDA FAERS** data and **DailyMed** drug labels.
+
+### Key Highlights
+
+- **Dual retrieval**: structured graph queries (Neo4j) + semantic vector search (ChromaDB) merged into a single LLM prompt
+- **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
+- **142 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
+- **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
+- **One-click Codespaces**: try it instantly from your browser
 
 ## Status
 
@@ -32,19 +41,45 @@ A question-answering system that combines a pharmaceutical knowledge graph (Neo4
 - *"Compare the safety profile of aspirin and clopidogrel"*
 - *"What drugs cause liver damage?"*
 
+## Example API Response
+
+```bash
+curl -s -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What are the side effects of ibuprofen?"}'
+```
+
+```json
+{
+  "answer": "Based on FDA FAERS data, ibuprofen is associated with several adverse events...",
+  "drugs_extracted": ["IBUPROFEN"],
+  "drugs_found": ["IBUPROFEN"],
+  "sources": {
+    "graph": {
+      "adverse_events": ["DRUG INEFFECTIVE (1,245)", "NAUSEA (892)", "PAIN (654)", "..."],
+      "interactions": ["ASPIRIN", "NAPROXEN", "..."],
+      "outcomes": ["Hospitalization (2,341)", "Death (156)", "..."]
+    },
+    "vector": ["drug_interactions (similarity: 94%)", "adverse_reactions (similarity: 91%)", "..."]
+  },
+  "llm_provider": "gemini",
+  "llm_model": "gemini-2.5-flash"
+}
+```
+
 ## Architecture
 
 ```
 FDA FAERS (CSV) ──→ Cleaning ──→ Neo4j Knowledge Graph
 DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
-                                         │
+                                          │
          User Question ──→ Query Engine ──┤
                            (Entity NER +  │
                             Graph Query + │
                             Vector Search)│
-                                         ▼
+                                          ▼
                                     LLM (Gemini / Ollama)
-                                         │
+                                          │
                                     Grounded Answer
                                     + Sources/Evidence
 ```
@@ -67,7 +102,7 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 | Knowledge Graph | Neo4j 5 Community (Docker) |
 | Vector Store | ChromaDB (embedded, SQLite-backed) |
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2, 384 dims) |
-| LLM Primary | Google Gemini API (gemini-2.0-flash, free tier) |
+| LLM Primary | Google Gemini API (gemini-2.5-flash, free tier) |
 | LLM Backup | Ollama + Llama 3 / Mistral (local) |
 | NLP | rapidfuzz (fuzzy entity matching) |
 | API | FastAPI + Pydantic v2 |
@@ -86,14 +121,24 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: GitHub Codespaces (Fastest — no local setup)
+
+Click the button below to open a fully configured development environment in your browser:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
+
+The Codespace automatically installs dependencies, starts Neo4j, and is ready to go. Just set your `GEMINI_API_KEY` in `.env` and run the data pipeline.
+
+### Option 2: Local Setup
+
+#### Prerequisites
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Docker and Docker Compose
-- Gemini API key (free tier) or Ollama installed locally
+- Gemini API key ([free tier](https://aistudio.google.com/apikey)) or Ollama installed locally
 
-### Installation
+#### Installation
 
 ```bash
 # Clone the repo
@@ -274,20 +319,6 @@ src/pharmagraphrag/
 | HAS_OUTCOME | 15,759 |
 | INTERACTS_WITH | 193 |
 | BELONGS_TO | 47 |
-
-## Documentation
-
-Detailed didactic documentation is available in the [docs/](docs/) folder:
-
-| Document | Topic |
-|---|---|
-| [01 Architecture and Concepts](docs/01_architecture_and_concepts.md) | RAG, GraphRAG, dual retrieval, system design |
-| [02 Data Pipeline](docs/02_data_pipeline.md) | FAERS ETL, DailyMed ingestion, Parquet format |
-| [03 Knowledge Graphs and Neo4j](docs/03_knowledge_graphs_neo4j.md) | Graph theory, Cypher, Neo4j schema and queries |
-| [04 Embeddings and Vector Search](docs/04_embeddings_and_vector_search.md) | Embeddings, chunking, ChromaDB, similarity search |
-| [05 Python Modern Tooling](docs/05_python_modern_tooling.md) | uv, pytest, ruff, Docker, GitHub Actions |
-| [06 Query Engine and LLM](docs/06_query_engine_and_llm.md) | Entity extraction, dual retrieval, LLM integration |
-| [07 API and UI](docs/07_api_and_ui.md) | FastAPI endpoints, Streamlit chat interface |
 
 ## License
 

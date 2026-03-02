@@ -83,7 +83,7 @@ class TestQueryEndpoint:
         )
         mock_llm.return_value = LLMResponse(
             text="Ibuprofen can cause nausea and headache.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
         )
 
@@ -137,7 +137,7 @@ class TestQueryEndpoint:
         )
         mock_llm.return_value = LLMResponse(
             text="",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             provider="gemini",
             error="API key invalid",
         )

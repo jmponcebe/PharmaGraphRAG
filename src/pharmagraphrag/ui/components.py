@@ -24,13 +24,13 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
         graph_raw: Per-drug raw graph data from RetrievedContext.graph_raw.
     """
     if not graph_raw:
-        st.info("No hay datos de grafo para visualizar.")
+        st.info("No graph data to visualize.")
         return
 
     try:
         from streamlit_agraph import Config, Edge, Node, agraph
     except ImportError:
-        st.warning("streamlit-agraph no está instalado.")
+        st.warning("streamlit-agraph is not installed.")
         return
 
     nodes_map: dict[str, Node] = {}
@@ -143,7 +143,7 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
             )
 
     if not nodes_map:
-        st.info("No hay nodos para visualizar.")
+        st.info("No nodes to visualize.")
         return
 
     config = Config(
@@ -167,11 +167,11 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
     st.markdown(
         """
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.85em;margin-top:8px;">
-            <span>🟢 Fármaco</span>
-            <span>🔴 Evento Adverso</span>
-            <span>🔵 Fármaco (interacción)</span>
+            <span>🟢 Drug</span>
+            <span>🔴 Adverse Event</span>
+            <span>🔵 Drug (interaction)</span>
             <span>🟣 Outcome</span>
-            <span>🟠 Categoría</span>
+            <span>🟠 Category</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -196,12 +196,12 @@ def render_sources(
         vector_raw: Raw vector search results.
     """
     if not graph_raw and not vector_raw:
-        st.info("No hay fuentes disponibles para esta consulta.")
+        st.info("No sources available for this query.")
         return
 
     # Graph sources
     if graph_raw:
-        with st.expander("📊 Fuentes del Knowledge Graph", expanded=False):
+        with st.expander("📊 Knowledge Graph Sources", expanded=False):
             for drug_name, ctx in graph_raw.items():
                 st.markdown(f"**{drug_name}**")
                 drug_info = ctx.get("drug_info") or {}
@@ -209,9 +209,9 @@ def render_sources(
                     brands = drug_info.get("brand_names") or []
                     route = drug_info.get("route", "")
                     if brands:
-                        st.caption(f"Marcas: {', '.join(brands)}")
+                        st.caption(f"Brands: {', '.join(brands)}")
                     if route:
-                        st.caption(f"Vía: {route}")
+                        st.caption(f"Route: {route}")
 
                 ae_count = len(ctx.get("adverse_events") or [])
                 inter_count = len(ctx.get("interactions") or [])
@@ -219,8 +219,8 @@ def render_sources(
                 cat_count = len(ctx.get("categories") or [])
 
                 cols = st.columns(4)
-                cols[0].metric("Eventos", ae_count)
-                cols[1].metric("Interacc.", inter_count)
+                cols[0].metric("Events", ae_count)
+                cols[1].metric("Interactions", inter_count)
                 cols[2].metric("Outcomes", out_count)
                 cols[3].metric("Categ.", cat_count)
 
@@ -228,10 +228,10 @@ def render_sources(
 
     # Vector sources
     if vector_raw:
-        with st.expander("📄 Fuentes de Etiquetas (Vector Search)", expanded=False):
+        with st.expander("📄 Label Sources (Vector Search)", expanded=False):
             for i, vr in enumerate(vector_raw):
                 meta = vr.get("metadata", {})
-                drug = meta.get("drug_name", "Desconocido")
+                drug = meta.get("drug_name", "Unknown")
                 section = meta.get("section", "").replace("_", " ").title()
                 distance = vr.get("distance", None)
                 text = vr.get("text", "")
@@ -240,7 +240,7 @@ def render_sources(
                 score_text = ""
                 if distance is not None:
                     relevance = max(0, 1 - distance)
-                    score_text = f" — Relevancia: {relevance:.0%}"
+                    score_text = f" — Relevance: {relevance:.0%}"
 
                 st.markdown(f"**{i + 1}. {drug}** — _{section}_{score_text}")
                 st.text(text[:300] + ("..." if len(text) > 300 else ""))
@@ -259,11 +259,11 @@ def render_drug_explorer() -> str | None:
         Selected drug name, or None.
     """
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🔍 Explorador de Fármacos")
+    st.sidebar.subheader("🔍 Drug Explorer")
 
     drug_query = st.sidebar.text_input(
-        "Buscar fármaco:",
-        placeholder="Ej: ibuprofen, metformin...",
+        "Search drug:",
+        placeholder="E.g.: ibuprofen, metformin...",
         key="drug_explorer_input",
     )
 
@@ -275,7 +275,7 @@ def render_drug_explorer() -> str | None:
 
         matches = search_drugs(drug_query, limit=10)
         if not matches:
-            st.sidebar.warning("No se encontraron fármacos.")
+            st.sidebar.warning("No drugs found.")
             return None
 
         selected = st.sidebar.selectbox(
@@ -286,7 +286,7 @@ def render_drug_explorer() -> str | None:
         return selected  # type: ignore[return-value]
 
     except Exception as exc:
-        st.sidebar.error(f"Error buscando: {exc}")
+        st.sidebar.error(f"Search error: {exc}")
         return None
 
 
@@ -306,34 +306,34 @@ def render_drug_detail(drug_name: str) -> None:
 
     drug_info = ctx.get("drug_info") or {}
     if not drug_info:
-        st.sidebar.warning(f"'{drug_name}' no encontrado en el grafo.")
+        st.sidebar.warning(f"'{drug_name}' not found in graph.")
         return
 
     st.sidebar.markdown(f"### {drug_info.get('name', drug_name)}")
 
     brands = drug_info.get("brand_names") or []
     if brands:
-        st.sidebar.caption(f"**Marcas:** {', '.join(brands)}")
+        st.sidebar.caption(f"**Brands:** {', '.join(brands)}")
 
     route = drug_info.get("route", "")
     if route:
-        st.sidebar.caption(f"**Vía:** {route}")
+        st.sidebar.caption(f"**Route:** {route}")
 
     categories = ctx.get("categories") or []
     if categories:
-        st.sidebar.caption(f"**Clase:** {', '.join(categories)}")
+        st.sidebar.caption(f"**Class:** {', '.join(categories)}")
 
     # Top adverse events
     events = ctx.get("adverse_events") or []
     if events:
-        st.sidebar.markdown("**Top Eventos Adversos:**")
+        st.sidebar.markdown("**Top Adverse Events:**")
         for e in events[:5]:
             st.sidebar.text(f"  • {e['adverse_event']} ({e['report_count']})")
 
     # Interactions
     interactions = ctx.get("interactions") or []
     if interactions:
-        st.sidebar.markdown("**Interacciones:**")
+        st.sidebar.markdown("**Interactions:**")
         for i in interactions[:5]:
             st.sidebar.text(f"  • {i['interacting_drug']}")
 
