@@ -254,8 +254,7 @@ def main() -> None:
     # Header
     st.title("💊 PharmaGraphRAG")
     st.caption(
-        "Query drug interactions and adverse events "
-        "with Knowledge Graph + Vector Search + LLM."
+        "Query drug interactions and adverse events with Knowledge Graph + Vector Search + LLM."
     )
 
     # Display chat history
