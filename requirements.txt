@@ -1,10 +1,8 @@
-# Requirements for Streamlit Community Cloud deployment.
+# Minimal requirements for Streamlit Community Cloud deployment (pip fallback).
+# Primary dependency management uses uv sync from uv.lock / pyproject.toml.
 #
 # In API mode (API_URL set), the Streamlit app only needs UI packages
 # and requests — all data access goes through the remote FastAPI service.
-#
-# Configure this file in Streamlit Cloud dashboard:
-#   Advanced settings → Requirements file → requirements-streamlit.txt
 
 streamlit>=1.41
 streamlit-agraph>=0.0.45

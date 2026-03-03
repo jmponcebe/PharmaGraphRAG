@@ -341,7 +341,7 @@ The system is deployed on a distributed free-tier architecture:
 
 | Service | Platform | URL | Cost |
 | --- | --- | --- | --- |
-| Chat UI | Streamlit Community Cloud | https://pharmagraph.streamlit.app | $0 |
+| Chat UI | Streamlit Community Cloud | https://pharmagraphrag.streamlit.app | $0 |
 | API + ChromaDB | Google Cloud Run | pharmagraphrag-api-893694384146.us-central1.run.app | $0 (free tier) |
 | Knowledge Graph | Neo4j Aura Free | Managed instance (11.9K nodes, 381K rels) | $0 (200K nodes limit) |
 
@@ -355,7 +355,7 @@ The system is deployed on a distributed free-tier architecture:
 - `docker/Dockerfile.cloudrun` -- Cloud Run image (CPU-only, baked ChromaDB)
 - `scripts/migrate_neo4j.py` -- Migrate data between Neo4j instances
 - `scripts/setup_demo.py` -- Load demo data into any Neo4j instance
-- `requirements-streamlit.txt` -- Minimal deps for Streamlit Cloud
+- `requirements.txt` -- Minimal pip deps for Streamlit Cloud (fallback to uv.lock)
 
 ## Related Projects
 - **DengueMLOps**: https://github.com/jmponcebe/DengueMLOps -- MLOps pipeline (same author)

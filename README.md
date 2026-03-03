@@ -135,19 +135,17 @@ graph TB
     CLEAN --> NEO4J
     CLEAN --> CHROMA
 
-    USER(("👤 User")) --> UI
-    UI --> API
+    USER(("👤 User")) <--> UI
+    UI <--> API
     API --> NER
     NER --> GR
     NER --> VR
-    GR --> NEO4J
-    VR --> CHROMA
+    GR <--> NEO4J
+    VR <--> CHROMA
     GR --> CTX
     VR --> CTX
     CTX --> GEMINI
     GEMINI -.->|fallback| OLLAMA
-    GEMINI --> API
-    OLLAMA -.-> API
 ```
 
 ### Query Flow
@@ -187,32 +185,23 @@ graph TB
 
 ## Quick Start
 
-### Option 1: Live Demo (instant — no setup)
+### Option 1: Try It Now
 
 **👉 [pharmagraphrag.streamlit.app](https://pharmagraphrag.streamlit.app)**
 
-The deployed version runs the **full dataset** (816K FDA FAERS reports, 88 drug labels, 5,654 vector embeddings) on:
-- **Neo4j Aura** — knowledge graph with 11.9K nodes and 381K relationships
-- **Google Cloud Run** — FastAPI backend with ChromaDB vector store
-- **Streamlit Community Cloud** — chat UI with graph visualization
+The production deployment serves the complete dataset (816K reports, 88 drug labels, 5,654 embeddings) — no installation required.
 
-No installation, no API keys, no Docker — just ask a question.
+### Option 2: GitHub Codespaces
 
-### Option 2: GitHub Codespaces (your own instance — zero setup)
-
-Click the button below to open a fully configured environment in your browser:
+Open a fully configured cloud environment in your browser — everything installs and starts automatically:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
-Everything happens automatically:
-1. Dependencies install, Neo4j starts
-2. Demo data loads into the knowledge graph + vector store (~3 min)
-3. API + Streamlit UI start automatically
-4. **Streamlit opens in a new browser tab — ready to chat!**
+Dependencies install, Neo4j loads demo data (~3 min), and the Streamlit UI opens automatically.
 
-> **LLM note**: Without a Gemini API key, the system auto-detects and falls back to Ollama. For best results, set `GEMINI_API_KEY` in `.env` ([free key](https://aistudio.google.com/apikey)).
+> For best results, set `GEMINI_API_KEY` in `.env` ([get one here](https://aistudio.google.com/apikey)). Without it, the system falls back to Ollama.
 
-### Option 3: Local Quick Demo (~5 min)
+### Option 3: Run Locally
 
 <details>
 <summary>📋 Click to expand setup instructions</summary>
@@ -242,7 +231,7 @@ Demo includes 88 drugs with adverse events, interactions, and full label embeddi
 
 > **⚠️ Disclaimer**: This project is for **educational/portfolio purposes only** and should not be used for clinical decision-making.
 
-### Option 4: Full Data Pipeline (complete dataset)
+### Option 4: Build from Source
 
 <details>
 <summary>📋 Click to expand full pipeline instructions</summary>
