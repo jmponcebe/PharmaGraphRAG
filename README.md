@@ -158,6 +158,8 @@ uv run streamlit run src/pharmagraphrag/ui/app.py
 
 Demo includes 88 drugs with adverse events, interactions, and full label embeddings.
 
+> **⚠️ Demo data disclaimer**: The demo dataset is a representative subset — it includes the top 15 adverse events per drug (by report count) and 88 drug labels. Results may differ from the full dataset (816K reports, 4,998 drugs). For production-grade analysis, run the [complete data pipeline](#option-3-full-data-pipeline-complete-dataset). This project is for educational/portfolio purposes only and should **not** be used for clinical decision-making.
+
 ### Option 3: Full Data Pipeline (complete dataset)
 
 For the complete dataset (816K reports, 4,998 drugs):

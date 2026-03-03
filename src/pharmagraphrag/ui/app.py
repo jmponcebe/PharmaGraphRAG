@@ -279,8 +279,15 @@ def main() -> None:
 
     # Empty state
     if not st.session_state.messages:
+        st.info(
+            "**Demo data notice:** This instance uses a representative subset "
+            "(88 drugs, top adverse events per drug). Results may differ from "
+            "the full dataset. For educational/portfolio purposes only — not "
+            "for clinical decision-making.",
+            icon="⚠️",
+        )
         st.markdown("---")
-        st.markdown("### 💡 Ejemplos de preguntas")
+        st.markdown("### 💡 Example Questions")
 
         examples = [
             "What are the side effects of ibuprofen?",
