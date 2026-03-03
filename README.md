@@ -2,14 +2,75 @@
 
 [![CI](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-145%20passing-brightgreen.svg)](#testing)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-pharmagraph.streamlit.app-FF4B4B.svg)](https://pharmagraph.streamlit.app)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
 > **GraphRAG system for querying drug interactions and adverse events using FDA data.**
 
 A production-ready question-answering system that combines a **pharmaceutical knowledge graph** (Neo4j) with **Retrieval-Augmented Generation** (RAG) to answer natural language questions about drug interactions and adverse events — grounded in real **FDA FAERS** data and **DailyMed** drug labels.
+
+---
+
+### Table of Contents
+
+- [Screenshots](#screenshots)
+- [Key Highlights](#key-highlights)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [API Endpoints](#api-endpoints)
+- [Cloud Deployment](#cloud-deployment-free-tier)
+- [Knowledge Graph Schema](#knowledge-graph-schema)
+- [Development](#development)
+- [Project Structure](#project-structure)
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%">
+
+**💬 Chat Interface**
+<!-- Replace with actual screenshot -->
+<!-- ![Chat UI](assets/screenshots/chat-ui.png) -->
+*Ask natural language questions, get grounded answers with sources*
+
+</td>
+<td width="50%">
+
+**🔗 Knowledge Graph Visualization**
+<!-- Replace with actual screenshot -->
+<!-- ![Graph Viz](assets/screenshots/graph-viz.png) -->
+*Interactive graph showing drug-event relationships*
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**📊 Source Evidence Panel**
+<!-- Replace with actual screenshot -->
+<!-- ![Sources](assets/screenshots/sources-panel.png) -->
+*Transparent evidence from FAERS reports and drug labels*
+
+</td>
+<td width="50%">
+
+**⚡ FastAPI Swagger**
+<!-- Replace with actual screenshot -->
+<!-- ![API Docs](assets/screenshots/api-docs.png) -->
+*Interactive API documentation at `/docs`*
+
+</td>
+</tr>
+</table>
+
+> **📸 To add screenshots**: capture each view and save to `assets/screenshots/`, then uncomment the `![...]` lines above.
 
 ### Key Highlights
 
@@ -70,19 +131,67 @@ curl -s -X POST http://localhost:8000/query \
 
 ## Architecture
 
-```
-FDA FAERS (CSV) ──→ Cleaning ──→ Neo4j Knowledge Graph
-DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
-                                          │
-         User Question ──→ Query Engine ──┤
-                           (Entity NER +  │
-                            Graph Query + │
-                            Vector Search)│
-                                          ▼
-                                    LLM (Gemini / Ollama)
-                                          │
-                                    Grounded Answer
-                                    + Sources/Evidence
+```mermaid
+graph TB
+    subgraph Data Sources
+        FAERS["🏥 FDA FAERS<br/><i>816K adverse event reports</i>"]
+        DM["💊 DailyMed<br/><i>88 drug labels</i>"]
+    end
+
+    subgraph Data Pipeline
+        CLEAN["🔧 Cleaning &amp; Normalization<br/><i>Parquet files</i>"]
+    end
+
+    subgraph Storage
+        NEO4J[("🔷 Neo4j<br/>Knowledge Graph<br/><i>11.9K nodes · 381K rels</i>")]
+        CHROMA[("🟢 ChromaDB<br/>Vector Store<br/><i>5,654 chunks · 384 dims</i>")]
+    end
+
+    subgraph "Query Engine"
+        NER["🔍 Entity Extraction<br/><i>exact + fuzzy matching</i>"]
+        GR["📊 Graph Retrieval<br/><i>Cypher queries</i>"]
+        VR["📄 Vector Retrieval<br/><i>semantic search</i>"]
+        CTX["🧩 Context Assembly<br/><i>merge graph + vector</i>"]
+    end
+
+    subgraph LLM
+        GEMINI["✨ Gemini API<br/><i>primary</i>"]
+        OLLAMA["🦙 Ollama<br/><i>fallback</i>"]
+    end
+
+    subgraph Interface
+        API["⚡ FastAPI<br/><i>REST API</i>"]
+        UI["💬 Streamlit<br/><i>Chat UI + Graph Viz</i>"]
+    end
+
+    FAERS --> CLEAN
+    DM --> CLEAN
+    CLEAN --> NEO4J
+    CLEAN --> CHROMA
+
+    USER(("👤 User")) --> UI
+    UI --> API
+    API --> NER
+    NER --> GR
+    NER --> VR
+    GR --> NEO4J
+    VR --> CHROMA
+    GR --> CTX
+    VR --> CTX
+    CTX --> GEMINI
+    GEMINI -.->|fallback| OLLAMA
+    GEMINI --> API
+    OLLAMA -.-> API
+
+    style FAERS fill:#e3f2fd,stroke:#1565c0
+    style DM fill:#e3f2fd,stroke:#1565c0
+    style NEO4J fill:#d1c4e9,stroke:#4527a0
+    style CHROMA fill:#c8e6c9,stroke:#2e7d32
+    style GEMINI fill:#fff3e0,stroke:#e65100
+    style OLLAMA fill:#fff3e0,stroke:#e65100
+    style UI fill:#fce4ec,stroke:#c62828
+    style API fill:#fce4ec,stroke:#c62828
+    style USER fill:#f5f5f5,stroke:#616161
 ```
 
 ### Query Flow
