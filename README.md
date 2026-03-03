@@ -36,17 +36,15 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 <td width="50%">
 
 **💬 Chat Interface**
-<!-- Replace with actual screenshot -->
-<!-- ![Chat UI](assets/screenshots/chat-ui.png) -->
-*Ask natural language questions, get grounded answers with sources*
+
+<img src="assets/screenshots/chat-ui.png" width="100%" alt="Chat UI — Ask natural language questions, get grounded answers" />
 
 </td>
 <td width="50%">
 
 **🔗 Knowledge Graph Visualization**
-<!-- Replace with actual screenshot -->
-<!-- ![Graph Viz](assets/screenshots/graph-viz.png) -->
-*Interactive graph showing drug-event relationships*
+
+<img src="assets/screenshots/graph-viz.png" width="100%" alt="Graph Visualization — Interactive drug-event relationship graph" />
 
 </td>
 </tr>
@@ -54,23 +52,19 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 <td width="50%">
 
 **📊 Source Evidence Panel**
-<!-- Replace with actual screenshot -->
-<!-- ![Sources](assets/screenshots/sources-panel.png) -->
-*Transparent evidence from FAERS reports and drug labels*
+
+<img src="assets/screenshots/sources-panel.png" width="100%" alt="Sources Panel — Transparent evidence from FAERS and drug labels" />
 
 </td>
 <td width="50%">
 
 **⚡ FastAPI Swagger**
-<!-- Replace with actual screenshot -->
-<!-- ![API Docs](assets/screenshots/api-docs.png) -->
-*Interactive API documentation at `/docs`*
+
+<img src="assets/screenshots/api-docs.png" width="100%" alt="API Documentation — Interactive Swagger UI" />
 
 </td>
 </tr>
 </table>
-
-> **📸 To add screenshots**: capture each view and save to `assets/screenshots/`, then uncomment the `![...]` lines above.
 
 ### Key Highlights
 
