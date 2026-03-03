@@ -35,7 +35,15 @@ data/chroma/
 .env
 .env.local
 .env.production
-Neo4j-*.txt
+
+# === Credentials / secrets ===
+*.credentials
+*.secret
+**/secrets/
+*-Created-*.txt
+
+# === Private docs (educational, not published) ===
+docs/
 
 # === IDE ===
 .vscode/settings.json

@@ -15,7 +15,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 
 - **Dual retrieval**: structured graph queries (Neo4j) + semantic vector search (ChromaDB) merged into a single LLM prompt
 - **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
-- **142 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
+- **145 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
 - **One-click Codespaces**: try it instantly from your browser
 

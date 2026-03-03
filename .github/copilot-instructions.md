@@ -23,7 +23,8 @@ All three development phases are finished. The system is fully operational end-t
 | Streamlit UI | Complete | `src/pharmagraphrag/ui/` |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` |
-| Tests | 142 passing | `tests/` |
+| Tests | 145 passing | `tests/` |
+| Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
 - **FAERS**: 2 quarters (2024Q3, 2024Q4) -- 816K reports, 3.9M drug entries, 2.8M reactions
@@ -78,7 +79,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (lint + test matrix 3.11/3.13 + Docker build with Buildx)
-- **Testing**: pytest (142 tests passing)
+- **Testing**: pytest (145 tests passing)
 - **Linting/Formatting**: ruff (check + format)
 - **Logging**: loguru
 - **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
@@ -153,10 +154,13 @@ PharmaGraphRAG/
 +-- scripts/
 |   +-- load_vectorstore.py        # One-off: populate ChromaDB
 |   +-- validate_search.py         # One-off: test semantic search queries
+|   +-- setup_demo.py              # Demo setup: load graph + embeddings (~3 min)
+|   +-- migrate_neo4j.py           # Migrate data between Neo4j instances
 +-- docker/
 |   +-- Dockerfile.api             # Multi-stage build, non-root, healthcheck
 |   +-- Dockerfile.ui              # Multi-stage build, non-root, healthcheck
-+-- docs/
+|   +-- Dockerfile.cloudrun        # Cloud Run: CPU-only PyTorch, baked-in ChromaDB
++-- docs/                          # Private didactic docs (gitignored)
 |   +-- plan.md                    # Project plan
 |   +-- 01_architecture_and_concepts.md
 |   +-- 02_data_pipeline.md
@@ -165,6 +169,7 @@ PharmaGraphRAG/
 |   +-- 05_python_modern_tooling.md
 |   +-- 06_query_engine_and_llm.md
 |   +-- 07_api_and_ui.md
+|   +-- 08_cloud_deployment.md      # Free-tier cloud architecture
 +-- .dockerignore
 +-- .env.example
 +-- .gitignore
@@ -228,6 +233,7 @@ PharmaGraphRAG/
 ### API Endpoints
 - `POST /query` -- Full GraphRAG pipeline: question -> answer + sources
 - `GET /drug/{name}` -- Graph lookup: drug info, adverse events, interactions
+- `GET /drugs/search?q=` -- Search drugs by name prefix (autocomplete)
 - `GET /health` -- Service health: Neo4j + ChromaDB status
 
 ### Docker
@@ -243,7 +249,7 @@ PharmaGraphRAG/
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 
-### Testing (142 tests)
+### Testing (145 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -259,9 +265,9 @@ PharmaGraphRAG/
 | test_vectorstore.py | 35 | Chunking, embeddings, ChromaDB CRUD |
 | test_engine.py | 37 | Entity extraction, retrieval, prompt assembly |
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
-| test_api.py | 13 | FastAPI endpoints, TestClient |
+| test_api.py | 16 | FastAPI endpoints, TestClient, drug search |
 | test_ui.py | 14 | Streamlit components, session state |
-| **Total** | **142** | |
+| **Total** | **145** | |
 
 ## Key Design Decisions
 
@@ -328,6 +334,28 @@ API_HOST=0.0.0.0
 API_PORT=8000
 STREAMLIT_PORT=8501
 ```
+
+## Cloud Deployment (Live)
+
+The system is deployed on a distributed free-tier architecture:
+
+| Service | Platform | URL | Cost |
+| --- | --- | --- | --- |
+| Chat UI | Streamlit Community Cloud | https://pharmagraph.streamlit.app | $0 |
+| API + ChromaDB | Google Cloud Run | pharmagraphrag-api-893694384146.us-central1.run.app | $0 (free tier) |
+| Knowledge Graph | Neo4j Aura Free | Managed instance (11.9K nodes, 381K rels) | $0 (200K nodes limit) |
+
+### Deployment Architecture
+- **Streamlit Cloud**: reads `API_URL` from `st.secrets`, switches to HTTP mode (calls Cloud Run API instead of local imports). Uses `uv sync` from `uv.lock`. Main file: `src/pharmagraphrag/ui/app.py`.
+- **Cloud Run**: Docker image with CPU-only PyTorch + baked-in ChromaDB. `Dockerfile.cloudrun` uses multi-stage build. Min instances=0 (scale to zero), max=2. Cold start ~15s.
+- **Neo4j Aura**: Free tier (200K nodes, 400K rels). Data migrated via `scripts/migrate_neo4j.py`. Auto-pauses after 3 days inactivity.
+- **Gemini API**: `GEMINI_API_KEY` set as Cloud Run env var. Free tier: 15 RPM.
+
+### Key Deployment Files
+- `docker/Dockerfile.cloudrun` -- Cloud Run image (CPU-only, baked ChromaDB)
+- `scripts/migrate_neo4j.py` -- Migrate data between Neo4j instances
+- `scripts/setup_demo.py` -- Load demo data into any Neo4j instance
+- `requirements-streamlit.txt` -- Minimal deps for Streamlit Cloud
 
 ## Related Projects
 - **DengueMLOps**: https://github.com/jmponcebe/DengueMLOps -- MLOps pipeline (same author)
