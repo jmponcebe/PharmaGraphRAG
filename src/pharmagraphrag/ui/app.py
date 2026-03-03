@@ -48,7 +48,7 @@ API_URL: str | None = _get_api_url()
 
 st.set_page_config(
     page_title="PharmaGraphRAG",
-    page_icon="💊",
+    page_icon="https://img.icons8.com/color/96/pill.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -400,7 +400,11 @@ def main() -> None:
     _render_sidebar()
 
     # Header
-    st.title("💊 PharmaGraphRAG")
+    st.markdown(
+        '<h1><img src="https://img.icons8.com/color/96/pill.png" width="40" '
+        'style="vertical-align: middle; margin-right: 8px;"/>PharmaGraphRAG</h1>',
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Query drug interactions and adverse events with Knowledge Graph + Vector Search + LLM."
     )
@@ -433,7 +437,7 @@ def main() -> None:
                 "(816K reports, 2024 Q3–Q4) and DailyMed drug labels (88 drugs) "
                 "using a knowledge graph (Neo4j) + vector search (ChromaDB) + LLM. "
                 "For educational/portfolio purposes only — not for clinical decision-making.",
-                icon="💊",
+                icon=":material/medication:",
             )
         else:
             st.info(
