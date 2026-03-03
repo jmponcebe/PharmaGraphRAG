@@ -3,17 +3,26 @@
 Chat-based interface for querying drug interactions and adverse events
 powered by a GraphRAG pipeline (Neo4j + ChromaDB + LLM).
 
+Supports two modes:
+- **Local mode** (default): imports engine modules directly.
+- **API mode**: calls a remote FastAPI endpoint via HTTP.
+  Set the ``API_URL`` environment variable to enable (e.g. ``https://my-api.run.app``).
+
 Usage:
     streamlit run src/pharmagraphrag/ui/app.py
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Any
 
 import streamlit as st
 from loguru import logger
+
+# Detect API mode: if API_URL is set, use HTTP; otherwise import engine locally
+API_URL: str | None = os.environ.get("API_URL") or None
 
 # ---------------------------------------------------------------------------
 # Page config (must be the first Streamlit call)
@@ -80,6 +89,9 @@ def _render_sidebar() -> None:
     st.sidebar.title("PharmaGraphRAG")
     st.sidebar.caption("GraphRAG for drug interactions & adverse events")
 
+    if API_URL:
+        st.sidebar.success(f"🌐 API mode: {API_URL}", icon="🔗")
+
     st.sidebar.markdown("---")
     st.sidebar.subheader("⚙️ Settings")
 
@@ -112,6 +124,8 @@ def _render_sidebar() -> None:
         ["gemini", "ollama"],
         index=0 if s["llm_provider"] == "gemini" else 1,
         key="sb_provider",
+        disabled=bool(API_URL),
+        help="Disabled in API mode — the server chooses the provider." if API_URL else None,
     )
 
     # Drug explorer
@@ -131,6 +145,117 @@ def _render_sidebar() -> None:
 
 
 def _process_question(question: str) -> ChatMessage:
+    """Run the GraphRAG pipeline locally (direct engine imports).
+
+    Args:
+        question: User question string.
+
+    Returns:
+        ChatMessage with the assistant's response.
+    """
+    if API_URL:
+        return _process_question_api(question)
+    return _process_question_local(question)
+
+
+# -- API mode ---------------------------------------------------------------
+
+
+def _process_question_api(question: str) -> ChatMessage:
+    """Call the remote FastAPI endpoint via HTTP."""
+    import requests as req_lib
+
+    s = st.session_state.settings
+    base = API_URL.rstrip("/")  # type: ignore[union-attr]
+
+    try:
+        resp = req_lib.post(
+            f"{base}/query",
+            json={
+                "question": question,
+                "use_graph": s["use_graph"],
+                "use_vector": s["use_vector"],
+                "use_llm": s["use_llm"],
+                "n_results": s["n_results"],
+            },
+            timeout=120,
+        )
+
+        if resp.status_code != 200:
+            return ChatMessage(
+                role="assistant",
+                content=f"❌ API error ({resp.status_code}): {resp.text[:300]}",
+                error=resp.text[:300],
+            )
+
+        data = resp.json()
+
+        # Fetch full graph context per drug (for visualization)
+        graph_raw: dict[str, Any] = {}
+        for drug in data.get("drugs_found_in_graph", []):
+            try:
+                dr = req_lib.get(f"{base}/drug/{drug}", timeout=30)
+                if dr.status_code == 200:
+                    dd = dr.json()
+                    graph_raw[drug] = {
+                        "drug_info": {
+                            "name": dd.get("name", drug),
+                            "brand_names": dd.get("brand_names", []),
+                            "route": dd.get("route", ""),
+                        },
+                        "adverse_events": dd.get("adverse_events", []),
+                        "interactions": dd.get("interactions", []),
+                        "outcomes": dd.get("outcomes", []),
+                        "categories": dd.get("categories", []),
+                    }
+            except Exception:
+                pass
+
+        # Map vector sources from API response
+        vector_raw: list[dict[str, Any]] = []
+        for src in data.get("sources", []):
+            if src.get("type") == "vector":
+                vector_raw.append(
+                    {
+                        "text": src.get("snippet", ""),
+                        "metadata": {
+                            "drug_name": src.get("drug", ""),
+                            "section": src.get("section", ""),
+                        },
+                    }
+                )
+
+        return ChatMessage(
+            role="assistant",
+            content=data.get("answer", ""),
+            sources_graph=graph_raw,
+            sources_vector=vector_raw,
+            drugs_extracted=data.get("drugs_extracted", []),
+            drugs_found=data.get("drugs_found_in_graph", []),
+            llm_provider=data.get("llm_provider", ""),
+            llm_model=data.get("llm_model", ""),
+            error=data.get("error"),
+        )
+
+    except req_lib.exceptions.ConnectionError:
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Cannot connect to API at `{base}`. Is the service running?",
+            error="Connection error",
+        )
+    except Exception as exc:
+        logger.error("API call failed: {}", exc)
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Error calling API: {exc}",
+            error=str(exc),
+        )
+
+
+# -- Local mode --------------------------------------------------------------
+
+
+def _process_question_local(question: str) -> ChatMessage:
     """Run the GraphRAG pipeline and return a ChatMessage.
 
     Args:

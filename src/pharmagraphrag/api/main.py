@@ -120,6 +120,34 @@ def query(req: QueryRequest) -> QueryResponse:
 
 
 # ---------------------------------------------------------------------------
+# GET /drugs/search
+# ---------------------------------------------------------------------------
+
+
+@app.get("/drugs/search")
+def search_drugs_endpoint(q: str, limit: int = 10) -> list[str]:
+    """Search for drugs whose name contains the query string.
+
+    Args:
+        q: Partial drug name (min 2 characters).
+        limit: Maximum number of results (default 10).
+
+    Returns:
+        List of matching drug names.
+    """
+    if len(q) < 2:
+        return []
+
+    from pharmagraphrag.graph.queries import search_drugs
+
+    try:
+        return search_drugs(q, limit=limit)
+    except Exception as exc:
+        logger.error("Drug search failed: {}", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # GET /drug/{name}
 # ---------------------------------------------------------------------------
 

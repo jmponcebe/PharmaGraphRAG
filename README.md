@@ -299,6 +299,65 @@ uv run ruff format src/ tests/
 uv run mypy src/
 ```
 
+## Cloud Deployment (Free Tier)
+
+The project supports a **distributed free-tier deployment**:
+
+| Service | Platform | Cost |
+|---|---|---|
+| Knowledge Graph | [Neo4j Aura Free](https://neo4j.com/cloud/aura-free/) | $0 (200K nodes) |
+| API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | $0 (free tier) |
+| Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | $0 |
+
+### Step 1: Neo4j Aura Free
+
+1. Create a free instance at [console.neo4j.io](https://console.neo4j.io)
+2. Save the connection URI and password
+3. Migrate data from your local Neo4j:
+
+```bash
+uv run python scripts/migrate_neo4j.py \
+    --source bolt://localhost:7687 \
+    --source-password pharmagraphrag \
+    --target neo4j+s://<id>.databases.neo4j.io \
+    --target-password <aura-password>
+```
+
+Or load demo data directly into Aura:
+
+```bash
+NEO4J_URI=neo4j+s://<id>.databases.neo4j.io \
+NEO4J_PASSWORD=<aura-password> \
+uv run python scripts/setup_demo.py
+```
+
+### Step 2: Google Cloud Run (API)
+
+```bash
+# Build the image (requires data/chroma/ to be populated)
+docker build -f docker/Dockerfile.cloudrun -t gcr.io/<project>/pharmagraphrag-api .
+
+# Push to Google Container Registry
+docker push gcr.io/<project>/pharmagraphrag-api
+
+# Deploy
+gcloud run deploy pharmagraphrag-api \
+    --image gcr.io/<project>/pharmagraphrag-api \
+    --platform managed --region us-central1 \
+    --allow-unauthenticated \
+    --set-env-vars NEO4J_URI=neo4j+s://<id>.databases.neo4j.io,NEO4J_USER=neo4j,NEO4J_PASSWORD=<pw>,GEMINI_API_KEY=<key>
+```
+
+### Step 3: Streamlit Community Cloud (UI)
+
+1. Go to [share.streamlit.io](https://share.streamlit.io) and connect your GitHub repo
+2. Configure:
+   - **Main file**: `src/pharmagraphrag/ui/app.py`
+   - **Requirements file**: `requirements-streamlit.txt`
+3. Add secret in Streamlit Cloud settings: `API_URL = "https://pharmagraphrag-api-xxx.run.app"`
+
+The Streamlit app auto-detects `API_URL` and switches to API mode (HTTP calls to Cloud Run instead of local imports).
+
 ## Project Structure
 
 ```

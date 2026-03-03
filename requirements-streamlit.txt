@@ -1,0 +1,14 @@
+# Requirements for Streamlit Community Cloud deployment.
+#
+# In API mode (API_URL set), the Streamlit app only needs UI packages
+# and requests — all data access goes through the remote FastAPI service.
+#
+# Configure this file in Streamlit Cloud dashboard:
+#   Advanced settings → Requirements file → requirements-streamlit.txt
+
+streamlit>=1.41
+streamlit-agraph>=0.0.45
+pyvis>=0.3
+plotly>=5.24
+requests>=2.32
+loguru>=0.7

@@ -1,13 +1,18 @@
 """Reusable Streamlit UI components.
 
 Provides graph visualization, sources panel, and drug explorer widgets.
+Supports both local mode (direct Neo4j) and API mode (HTTP calls).
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import streamlit as st
+
+# Detect API mode
+_API_URL: str | None = os.environ.get("API_URL") or None
 
 # ---------------------------------------------------------------------------
 # Graph visualization (streamlit-agraph)
@@ -271,15 +276,19 @@ def render_drug_explorer() -> str | None:
         return None
 
     try:
-        from pharmagraphrag.graph.queries import search_drugs
+        if _API_URL:
+            matches = _search_drugs_api(drug_query)
+        else:
+            from pharmagraphrag.graph.queries import search_drugs
 
-        matches = search_drugs(drug_query, limit=10)
+            matches = search_drugs(drug_query, limit=10)
+
         if not matches:
             st.sidebar.warning("No drugs found.")
             return None
 
         selected = st.sidebar.selectbox(
-            "Resultados:",
+            "Results:",
             matches,
             key="drug_explorer_select",
         )
@@ -297,9 +306,12 @@ def render_drug_detail(drug_name: str) -> None:
         drug_name: Drug name to look up.
     """
     try:
-        from pharmagraphrag.graph.queries import get_drug_full_context
+        if _API_URL:
+            ctx = _get_drug_context_api(drug_name)
+        else:
+            from pharmagraphrag.graph.queries import get_drug_full_context
 
-        ctx = get_drug_full_context(drug_name)
+            ctx = get_drug_full_context(drug_name)
     except Exception as exc:
         st.sidebar.error(f"Error: {exc}")
         return
@@ -344,3 +356,43 @@ def render_drug_detail(drug_name: str) -> None:
         for o in outcomes[:5]:
             desc = o.get("outcome_description", o.get("outcome_code", ""))
             st.sidebar.text(f"  • {desc} ({o['report_count']})")
+
+
+# ---------------------------------------------------------------------------
+# API-mode helpers (HTTP calls to remote FastAPI)
+# ---------------------------------------------------------------------------
+
+
+def _search_drugs_api(query: str, limit: int = 10) -> list[str]:
+    """Search drugs via the remote API."""
+    import requests
+
+    base = (_API_URL or "").rstrip("/")
+    resp = requests.get(f"{base}/drugs/search", params={"q": query, "limit": limit}, timeout=15)
+    if resp.status_code == 200:
+        return resp.json()
+    return []
+
+
+def _get_drug_context_api(drug_name: str) -> dict[str, Any]:
+    """Fetch full drug context via the remote API."""
+    import requests
+
+    base = (_API_URL or "").rstrip("/")
+    resp = requests.get(f"{base}/drug/{drug_name}", timeout=15)
+    if resp.status_code != 200:
+        return {}
+
+    dd = resp.json()
+    return {
+        "drug_info": {
+            "name": dd.get("name", drug_name),
+            "generic_names": dd.get("generic_names", []),
+            "brand_names": dd.get("brand_names", []),
+            "route": dd.get("route", ""),
+        },
+        "adverse_events": dd.get("adverse_events", []),
+        "interactions": dd.get("interactions", []),
+        "outcomes": dd.get("outcomes", []),
+        "categories": dd.get("categories", []),
+    }

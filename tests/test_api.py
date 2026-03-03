@@ -198,6 +198,34 @@ class TestDrugEndpoint:
 
 
 # ===========================================================================
+# GET /drugs/search
+# ===========================================================================
+
+
+class TestDrugSearchEndpoint:
+    """Tests for the /drugs/search endpoint."""
+
+    @patch("pharmagraphrag.graph.queries.search_drugs")
+    def test_search_returns_matches(self, mock_search):
+        mock_search.return_value = ["ASPIRIN", "ATORVASTATIN"]
+        resp = client.get("/drugs/search", params={"q": "ast", "limit": 5})
+        assert resp.status_code == 200
+        assert resp.json() == ["ASPIRIN", "ATORVASTATIN"]
+
+    def test_search_too_short(self):
+        resp = client.get("/drugs/search", params={"q": "a"})
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    @patch("pharmagraphrag.graph.queries.search_drugs")
+    def test_search_no_matches(self, mock_search):
+        mock_search.return_value = []
+        resp = client.get("/drugs/search", params={"q": "zzzzz"})
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+# ===========================================================================
 # GET /health
 # ===========================================================================
 

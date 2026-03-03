@@ -1,0 +1,71 @@
+# ============================================================
+# PharmaGraphRAG — Cloud Run Dockerfile
+# ============================================================
+# Packages FastAPI + ChromaDB data into a single stateless
+# container intended for Google Cloud Run.
+#
+# Requirements before building:
+#   - data/chroma/ must be populated (run scripts/setup_demo.py
+#     locally or use the full pipeline first).
+#
+# Build:
+#   docker build -f docker/Dockerfile.cloudrun -t pharmagraphrag-api .
+#
+# Run locally (test):
+#   docker run -p 8000:8000 \
+#     -e NEO4J_URI=bolt://<aura-host>:7687 \
+#     -e NEO4J_USER=neo4j \
+#     -e NEO4J_PASSWORD=<password> \
+#     -e GEMINI_API_KEY=<key> \
+#     pharmagraphrag-api
+#
+# Deploy to Cloud Run:
+#   gcloud run deploy pharmagraphrag-api \
+#     --image gcr.io/<project>/pharmagraphrag-api \
+#     --platform managed --region us-central1 \
+#     --allow-unauthenticated \
+#     --set-env-vars NEO4J_URI=...,NEO4J_USER=...,NEO4J_PASSWORD=...,GEMINI_API_KEY=...
+# ============================================================
+
+# ---- Stage 1: build ----
+FROM python:3.13-slim AS builder
+
+WORKDIR /app
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY src/ src/
+RUN uv sync --frozen --no-dev
+
+# ---- Stage 2: runtime ----
+FROM python:3.13-slim AS runtime
+
+LABEL maintainer="Jose María Ponce Bernabé <jmponcebe@gmail.com>"
+
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --create-home appuser
+
+WORKDIR /app
+
+# Installed Python environment
+COPY --from=builder /app /app
+
+# Pre-built ChromaDB embeddings (required)
+COPY data/chroma/ /app/data/chroma/
+
+# Ensure data dir is owned by appuser
+RUN chown -R appuser:appuser /app/data
+
+USER appuser
+
+# Cloud Run injects PORT (default 8080); allow override
+ENV PORT=8080
+ENV CHROMA_PERSIST_DIR=/app/data/chroma
+
+EXPOSE ${PORT}
+
+# Use shell form so $PORT is expanded at runtime
+CMD /app/.venv/bin/uvicorn pharmagraphrag.api.main:app --host 0.0.0.0 --port $PORT
