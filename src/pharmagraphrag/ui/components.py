@@ -11,8 +11,20 @@ from typing import Any
 
 import streamlit as st
 
-# Detect API mode
-_API_URL: str | None = os.environ.get("API_URL") or None
+# Detect API mode (supports env var and Streamlit secrets)
+def _get_api_url() -> str | None:
+    url = os.environ.get("API_URL")
+    if not url:
+        try:
+            import streamlit as _st
+
+            url = _st.secrets.get("API_URL")  # type: ignore[union-attr]
+        except Exception:
+            pass
+    return url or None
+
+
+_API_URL: str | None = _get_api_url()
 
 # ---------------------------------------------------------------------------
 # Graph visualization (streamlit-agraph)

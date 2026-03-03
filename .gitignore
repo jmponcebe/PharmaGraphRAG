@@ -35,6 +35,7 @@ data/chroma/
 .env
 .env.local
 .env.production
+Neo4j-*.txt
 
 # === IDE ===
 .vscode/settings.json

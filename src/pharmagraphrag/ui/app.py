@@ -21,8 +21,19 @@ from typing import Any
 import streamlit as st
 from loguru import logger
 
-# Detect API mode: if API_URL is set, use HTTP; otherwise import engine locally
-API_URL: str | None = os.environ.get("API_URL") or None
+# Detect API mode: if API_URL is set, use HTTP; otherwise import engine locally.
+# Supports both env vars and Streamlit Cloud secrets.
+def _get_api_url() -> str | None:
+    url = os.environ.get("API_URL")
+    if not url:
+        try:
+            url = st.secrets.get("API_URL")  # type: ignore[union-attr]
+        except Exception:
+            pass
+    return url or None
+
+
+API_URL: str | None = _get_api_url()
 
 # ---------------------------------------------------------------------------
 # Page config (must be the first Streamlit call)

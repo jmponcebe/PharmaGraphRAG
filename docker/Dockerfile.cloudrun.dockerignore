@@ -1,0 +1,41 @@
+# .dockerignore for Cloud Run build
+# Unlike the default .dockerignore, this INCLUDES data/chroma/
+
+# Version control
+.git
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Virtual environment
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Data (exclude raw and processed, but KEEP chroma/)
+data/raw/
+data/processed/
+
+# Node
+node_modules
+
+# Build artifacts
+dist/
+build/
+*.egg-info
+
+# Misc
+.env
+*.log
+docs/
+notebooks/

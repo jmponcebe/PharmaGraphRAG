@@ -28,7 +28,7 @@
 # ============================================================
 
 # ---- Stage 1: build ----
-FROM python:3.13-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -40,8 +40,25 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src/ src/
 RUN uv sync --frozen --no-dev
 
+# Replace PyTorch CUDA with CPU-only version (saves ~10 GB)
+RUN uv pip install --reinstall --no-cache \
+        torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && uv pip uninstall \
+        nvidia-cublas-cu12 nvidia-cuda-cupti-cu12 nvidia-cuda-nvrtc-cu12 \
+        nvidia-cuda-runtime-cu12 nvidia-cudnn-cu12 nvidia-cufft-cu12 \
+        nvidia-curand-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 \
+        nvidia-nccl-cu12 nvidia-nvjitlink-cu12 nvidia-nvtx-cu12 \
+        nvidia-cufile-cu12 nvidia-cusparselt-cu12 nvidia-nvshmem-cu12 \
+        cuda-bindings cuda-pathfinder \
+        triton 2>/dev/null ; true \
+    && rm -rf /app/.venv/lib/python*/site-packages/nvidia* \
+              /app/.venv/lib/python*/site-packages/cuda* \
+              /app/.venv/lib/python*/site-packages/triton* \
+              /app/.venv/lib/python*/site-packages/_cuda_*.pth \
+              /app/.venv/lib/python*/site-packages/_cuda_*.py
+
 # ---- Stage 2: runtime ----
-FROM python:3.13-slim AS runtime
+FROM python:3.12-slim AS runtime
 
 LABEL maintainer="Jose María Ponce Bernabé <jmponcebe@gmail.com>"
 
