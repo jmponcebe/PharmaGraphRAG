@@ -3,7 +3,8 @@
 [![CI](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-142%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-145%20passing-brightgreen.svg)](#testing)
+[![Live Demo](https://img.shields.io/badge/demo-pharmagraph.streamlit.app-FF4B4B.svg)](https://pharmagraph.streamlit.app)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
 > **GraphRAG system for querying drug interactions and adverse events using FDA data.**
@@ -31,7 +32,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | Chat UI | ✅ Complete | Streamlit: chat, graph visualization, sources panel, drug explorer |
 | Docker Compose | ✅ Complete | Neo4j + API + UI + Ollama (optional profile) |
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
-| Tests | ✅ 142 passing | Data pipeline (27) + vectors (35) + engine (37) + LLM (14) + API (13) + UI (14) |
+| Tests | ✅ 145 passing | Data pipeline (27) + vectors (35) + engine (37) + LLM (14) + API (16) + UI (14) |
 
 ## Example Questions
 
@@ -109,7 +110,7 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 | UI | Streamlit + streamlit-agraph (graph visualization) |
 | Containers | Docker Compose (multi-stage, non-root, healthchecks) |
 | CI/CD | GitHub Actions (lint + test matrix + Docker build) |
-| Testing | pytest (142 tests, mocked services) |
+| Testing | pytest (145 tests, mocked services) |
 | Linting | ruff (check + format) |
 
 ## Data Sources
@@ -121,7 +122,18 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 
 ## Quick Start
 
-### Option 1: GitHub Codespaces (Fastest — zero setup)
+### Option 1: Live Demo (instant — no setup)
+
+**👉 [pharmagraph.streamlit.app](https://pharmagraph.streamlit.app)**
+
+The deployed version runs the **full dataset** (816K FDA FAERS reports, 88 drug labels, 5,654 vector embeddings) on:
+- **Neo4j Aura** — knowledge graph with 11.9K nodes and 381K relationships
+- **Google Cloud Run** — FastAPI backend with ChromaDB vector store
+- **Streamlit Community Cloud** — chat UI with graph visualization
+
+No installation, no API keys, no Docker — just ask a question.
+
+### Option 2: GitHub Codespaces (your own instance — zero setup)
 
 Click the button below to open a fully configured environment in your browser:
 
@@ -135,7 +147,7 @@ Everything happens automatically:
 
 > **LLM note**: Without a Gemini API key, the system auto-detects and falls back to Ollama. For best results, set `GEMINI_API_KEY` in `.env` ([free key](https://aistudio.google.com/apikey)).
 
-### Option 2: Local Quick Demo (~5 min)
+### Option 3: Local Quick Demo (~5 min)
 
 ```bash
 # Clone and install
@@ -160,7 +172,7 @@ Demo includes 88 drugs with adverse events, interactions, and full label embeddi
 
 > **⚠️ Demo data disclaimer**: The demo dataset is a representative subset — it includes the top 15 adverse events per drug (by report count) and 88 drug labels. Results may differ from the full dataset (816K reports, 4,998 drugs). For production-grade analysis, run the [complete data pipeline](#option-3-full-data-pipeline-complete-dataset). This project is for educational/portfolio purposes only and should **not** be used for clinical decision-making.
 
-### Option 3: Full Data Pipeline (complete dataset)
+### Option 4: Full Data Pipeline (complete dataset)
 
 For the complete dataset (816K reports, 4,998 drugs):
 
@@ -246,6 +258,7 @@ docker compose --profile ollama up --build -d
 |---|---|---|
 | `POST` | `/query` | Ask a question, get a RAG-powered answer |
 | `GET` | `/drug/{name}` | Get graph data for a specific drug |
+| `GET` | `/drugs/search?q=` | Search drugs by name prefix (for autocomplete) |
 | `GET` | `/health` | Health check (Neo4j + ChromaDB status) |
 
 #### Example: Query
@@ -267,7 +280,7 @@ curl http://localhost:8000/drug/IBUPROFEN
 ### Testing
 
 ```bash
-# Run all tests (142 tests)
+# Run all tests (145 tests)
 uv run pytest
 
 # Run with verbose output
@@ -301,13 +314,15 @@ uv run mypy src/
 
 ## Cloud Deployment (Free Tier)
 
-The project supports a **distributed free-tier deployment**:
+The project is **deployed and live** using a distributed free-tier architecture:
 
-| Service | Platform | Cost |
-|---|---|---|
-| Knowledge Graph | [Neo4j Aura Free](https://neo4j.com/cloud/aura-free/) | $0 (200K nodes) |
-| API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | $0 (free tier) |
-| Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | $0 |
+| Service | Platform | URL | Cost |
+|---|---|---|---|
+| Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | [pharmagraph.streamlit.app](https://pharmagraph.streamlit.app) | $0 |
+| API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | [pharmagraphrag-api-893694384146.us-central1.run.app](https://pharmagraphrag-api-893694384146.us-central1.run.app/health) | $0 (free tier) |
+| Knowledge Graph | [Neo4j Aura Free](https://neo4j.com/cloud/aura-free/) | Managed instance (11.9K nodes, 381K rels) | $0 (200K nodes) |
+
+### Reproducing the Deployment
 
 ### Step 1: Neo4j Aura Free
 

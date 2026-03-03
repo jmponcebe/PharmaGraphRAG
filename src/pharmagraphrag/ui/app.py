@@ -422,13 +422,22 @@ def main() -> None:
 
     # Empty state
     if not st.session_state.messages:
-        st.info(
-            "**Demo data notice:** This instance uses a representative subset "
-            "(88 drugs, top adverse events per drug). Results may differ from "
-            "the full dataset. For educational/portfolio purposes only — not "
-            "for clinical decision-making.",
-            icon="⚠️",
-        )
+        if API_URL:
+            st.info(
+                "**Powered by GraphRAG** — This system queries FDA FAERS reports "
+                "(816K reports, 2024 Q3–Q4) and DailyMed drug labels (88 drugs) "
+                "using a knowledge graph (Neo4j) + vector search (ChromaDB) + LLM. "
+                "For educational/portfolio purposes only — not for clinical decision-making.",
+                icon="💊",
+            )
+        else:
+            st.info(
+                "**Demo data notice:** This instance uses a representative subset "
+                "(88 drugs, top adverse events per drug). Results may differ from "
+                "the full dataset. For educational/portfolio purposes only — not "
+                "for clinical decision-making.",
+                icon="⚠️",
+            )
         st.markdown("---")
         st.markdown("### 💡 Example Questions")
 
