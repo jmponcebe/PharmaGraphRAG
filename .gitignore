@@ -43,7 +43,8 @@ data/chroma/
 *-Created-*.txt
 
 # === Private docs (educational, not published) ===
-docs/
+docs/*.md
+!docs/index.html
 
 # === IDE ===
 .vscode/settings.json
