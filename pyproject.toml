@@ -41,6 +41,11 @@ dependencies = [
     "python-dotenv>=1.0",
     "loguru>=0.7",
     "tqdm>=4.67",
+    # UI (included in main deps for Streamlit Cloud compatibility)
+    "streamlit>=1.41",
+    "streamlit-agraph>=0.0.45",
+    "pyvis>=0.3",
+    "plotly>=5.24",
 ]
 
 [project.optional-dependencies]
@@ -51,12 +56,6 @@ dev = [
     "ruff>=0.9",
     "mypy>=1.14",
     "pre-commit>=4.0",
-]
-ui = [
-    "streamlit>=1.41",
-    "streamlit-agraph>=0.0.45",
-    "pyvis>=0.3",
-    "plotly>=5.24",
 ]
 
 [project.urls]

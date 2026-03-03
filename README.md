@@ -153,7 +153,7 @@ Everything happens automatically:
 # Clone and install
 git clone https://github.com/jmponcebe/PharmaGraphRAG.git
 cd PharmaGraphRAG
-uv sync --extra dev --extra ui
+uv sync --extra dev
 
 # Configure
 cp .env.example .env
@@ -191,7 +191,7 @@ git clone https://github.com/jmponcebe/PharmaGraphRAG.git
 cd PharmaGraphRAG
 
 # Install all dependencies
-uv sync --extra dev --extra ui
+uv sync --extra dev
 
 # Copy and configure environment variables
 cp .env.example .env

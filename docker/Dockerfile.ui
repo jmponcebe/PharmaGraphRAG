@@ -11,14 +11,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Copy dependency specs first → Docker layer cache
 COPY pyproject.toml uv.lock README.md ./
 
-# Install dependencies with UI extras (cached layer)
-RUN uv sync --frozen --no-dev --extra ui --no-install-project
+# Install dependencies (cached layer)
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy source code
 COPY src/ src/
 
-# Install project with UI extras
-RUN uv sync --frozen --no-dev --extra ui
+# Install project
+RUN uv sync --frozen --no-dev
 
 # ============================================================
 # Stage 2 — runtime (slim, non-root)

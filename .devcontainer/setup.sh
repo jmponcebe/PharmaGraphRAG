@@ -20,7 +20,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # 2. Install Python dependencies
 echo ">>> Installing Python dependencies..."
-uv sync --extra dev --extra ui
+uv sync --extra dev
 
 # 3. Create .env from example if not present
 if [ ! -f .env ]; then
