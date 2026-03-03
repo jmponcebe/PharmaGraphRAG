@@ -3,8 +3,8 @@
 # PharmaGraphRAG — Codespaces / devcontainer setup
 # =============================================================
 # This script runs automatically when a Codespace is created.
-# It installs dependencies and starts Neo4j so the project is
-# ready to use immediately.
+# It installs dependencies, loads demo data, and starts the app
+# so it's ready to use immediately.
 # =============================================================
 
 set -euo pipefail
@@ -26,10 +26,6 @@ uv sync --extra dev --extra ui
 if [ ! -f .env ]; then
     echo ">>> Creating .env from .env.example..."
     cp .env.example .env
-    echo ""
-    echo "  ⚠️  IMPORTANT: Set your GEMINI_API_KEY in .env"
-    echo "     Get a free key at: https://aistudio.google.com/apikey"
-    echo ""
 fi
 
 # 4. Start Neo4j via Docker Compose
@@ -47,26 +43,39 @@ done
 
 if [ $RETRIES -eq 0 ]; then
     echo "  ⚠️  Neo4j didn't start in time. Run: docker compose up -d neo4j"
-else
-    echo "  ✅ Neo4j is ready!"
+    exit 1
 fi
+echo "  ✅ Neo4j is ready!"
+
+# 6. Load demo data (knowledge graph + vector store)
+echo ">>> Loading demo data (~2-3 minutes)..."
+uv run python scripts/setup_demo.py
+
+# 7. Start API server in background
+echo ">>> Starting API server..."
+nohup uv run uvicorn pharmagraphrag.api.main:app --host 0.0.0.0 --port 8000 > /tmp/api.log 2>&1 &
+sleep 2
+echo "  ✅ API running on port 8000"
+
+# 8. Start Streamlit UI in background
+echo ">>> Starting Streamlit UI..."
+nohup uv run streamlit run src/pharmagraphrag/ui/app.py --server.port 8501 --server.headless true > /tmp/ui.log 2>&1 &
+sleep 2
+echo "  ✅ Streamlit running on port 8501"
 
 echo ""
 echo "============================================="
-echo " ✅ Setup complete!"
+echo " ✅ Everything is ready!"
 echo "============================================="
 echo ""
-echo " Quick start:"
-echo "   1. Set GEMINI_API_KEY in .env (free: https://aistudio.google.com/apikey)"
-echo "   2. Run the data pipeline:"
-echo "      uv run python scripts/download_faers.py"
-echo "      uv run python scripts/clean_faers.py"
-echo "      uv run python scripts/ingest_dailymed.py"
-echo "      uv run python scripts/load_graph.py"
-echo "      uv run python scripts/load_vectorstore.py"
-echo "   3. Start the app:"
-echo "      uv run uvicorn pharmagraphrag.api.main:app --reload &"
-echo "      uv run streamlit run src/pharmagraphrag/ui/app.py"
+echo " 🌐 Streamlit will open automatically in a new tab."
+echo "    If not, click the 'Ports' tab and open port 8501."
 echo ""
-echo " Or run tests: uv run pytest"
+echo " 💬 Try asking: \"What are the side effects of metformin?\""
+echo ""
+echo " 🔑 Optional: Set GEMINI_API_KEY in .env for better answers"
+echo "    Get a free key at: https://aistudio.google.com/apikey"
+echo "    Without it, the system uses Ollama (if available) as fallback."
+echo ""
+echo " 🧪 Run tests: uv run pytest"
 echo ""

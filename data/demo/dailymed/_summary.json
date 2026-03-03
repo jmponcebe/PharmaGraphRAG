@@ -1,0 +1,20 @@
+{
+  "total_drugs_queried": 88,
+  "labels_found": 88,
+  "labels_failed": 0,
+  "failed_drugs": [],
+  "sections_available": {
+    "drug_interactions": 71,
+    "adverse_reactions": 75,
+    "warnings": 31,
+    "warnings_and_cautions": 58,
+    "contraindications": 75,
+    "boxed_warning": 43,
+    "indications_and_usage": 88,
+    "dosage_and_administration": 88,
+    "clinical_pharmacology": 74,
+    "mechanism_of_action": 59,
+    "pharmacodynamics": 49,
+    "overdosage": 73
+  }
+}

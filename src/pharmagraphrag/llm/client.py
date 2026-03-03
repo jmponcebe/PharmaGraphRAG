@@ -226,6 +226,11 @@ def generate_answer(
     settings = get_settings()
     provider = provider or settings.llm_provider
 
+    # Auto-detect: if Gemini is configured but no API key, switch to Ollama
+    if provider == "gemini" and not settings.gemini_api_key:
+        logger.info("GEMINI_API_KEY not set — switching to Ollama automatically")
+        provider = "ollama"
+
     logger.info("Generating answer with provider='{}', model='{}'", provider, model or "default")
 
     # Primary attempt

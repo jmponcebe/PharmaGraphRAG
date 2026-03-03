@@ -1,0 +1,34 @@
+{
+  "drug_name": "CLINDAMYCIN",
+  "generic_names": [
+    "CLINDAMYCIN PHOSPHATE"
+  ],
+  "brand_names": [
+    "Clindamycin Phosphate"
+  ],
+  "manufacturer": [
+    "Bryant Ranch Prepack"
+  ],
+  "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+  ],
+  "route": [
+    "TOPICAL"
+  ],
+  "substance_name": [
+    "CLINDAMYCIN PHOSPHATE"
+  ],
+  "pharm_class_epc": [],
+  "pharm_class_moa": [],
+  "sections": {
+    "drug_interactions": "Drug Interactions Clindamycin has been shown to have neuromuscular blocking properties that may enhance the action of other neuromuscular blocking agents. Therefore, it should be used with caution in patients receiving such agents.",
+    "adverse_reactions": "ADVERSE REACTIONS In 18 clinical studies of various formulations of clindamycin phosphate using placebo vehicle and/or active comparator drugs as controls, patients experienced a number of treatment emergent adverse dermatologic events [see table below]. Number of Patients Reporting Events Treatment Emergent Adverse Event Solution n=553(%) Gel n=148(%) Lotion n=160(%) Burning 62 (11) 15 (10) 17 (11) Itching 36 ( 7) 15 (10) 17 (11) Burning/Itching 60 (11) # ( – ) # ( – ) Dryness 105 (19) 34 (23) 29 (18) Erythema 86 (16) 10 ( 7) 22 (14) Oiliness/Oily Skin 8 ( 1) 26 (18) 12* (10) Peeling 61 (11) # ( – ) 11 ( 7) # not recorded * of 126 subjects Orally and parenterally administered clindamycin has been associated with severe colitis which may end fatally. Cases of diarrhea, bloody diarrhea and colitis (including pseudomembranous colitis) have been reported as adverse reactions in patients treated with oral and parenteral formulations of clindamycin and rarely with topical clindamycin (see WARNINGS ). Abdominal pain, gastrointestinal disturbances, gram-negative folliculitis, eye pain and contact dermatitis have also been reported in association with the use of topical formulations of clindamycin. To report SUSPECTED ADVERSE REACTIONS, contact Perrigo at 1-866-634-9120 or FDA at 1-800-FDA-1088 or www.fda.gov/medwatch .",
+    "warnings": "WARNINGS Orally and parenterally administered clindamycin has been associated with severe colitis which may result in patient death. Use of the topical formulation of clindamycin results in absorption of the antibiotic from the skin surface. Diarrhea, bloody diarrhea, and colitis (including pseudomembranous colitis) have been reported with the use of topical and systemic clindamycin. Studies indicate a toxin(s) produced by clostridia is one primary cause of antibiotic-associated colitis. The colitis is usually characterized by severe persistent diarrhea and severe abdominal cramps and may be associated with the passage of blood and mucus. Endoscopic examination may reveal pseudomembranous colitis. Stool culture for Clostridium difficile and stool assay for C. difficile toxin may be helpful diagnostically. When significant diarrhea occurs, the drug should be discontinued. Large bowel endoscopy should be considered to establish a definitive diagnosis in cases of severe diarrhea. Antiperistaltic agents such as opiates and diphenoxylate with atropine may prolong and/or worsen the condition. Vancomycin has been found to be effective in the treatment of antibiotic-associated pseudomembranous colitis produced by Clostridium difficile . The usual adult dosage is 500 milligrams to 2 grams of vancomycin orally per day in three to four divided doses administered for 7 to 10 days. Cholestyramine or colestipol resins bind vancomycin in vitro . If both a resin and vancomycin are to be administered concurrently, it may be advisable to separate the time of administration of each drug. Diarrhea, colitis, and pseudomembranous colitis have been observed to begin up to several weeks following cessation of oral and parenteral therapy with clindamycin.",
+    "contraindications": "CONTRAINDICATIONS Clindamycin phosphate topical lotion is contraindicated in individuals with a history of hypersensitivity to preparations containing clindamycin or lincomycin, a history of regional enteritis or ulcerative colitis, or a history of antibiotic-associated colitis.",
+    "indications_and_usage": "INDICATIONS AND USAGE Clindamycin phosphate topical lotion is indicated in the treatment of acne vulgaris. In view of the potential for diarrhea, bloody diarrhea and pseudomembranous colitis, the physician should consider whether other agents are more appropriate (see CONTRAINDICATIONS , WARNINGS and ADVERSE REACTIONS ).",
+    "dosage_and_administration": "DOSAGE AND ADMINISTRATION Apply a thin film of clindamycin phosphate topical lotion twice daily to affected area. Lotion: Shake well immediately before using. Keep all liquid dosage forms in containers tightly closed.",
+    "clinical_pharmacology": "CLINICAL PHARMACOLOGY Mechanism of Action The mechanism of action of clindamycin in treating acne vulgaris is unknown. Pharmacokinetics Following multiple topical applications of clindamycin phosphate at a concentration equivalent to 10 mg clindamycin per mL in an isopropyl alcohol and water solution, very low levels of clindamycin are present in the serum (0–3 ng/mL) and less than 0.2% of the dose is recovered in urine as clindamycin. Although clindamycin phosphate is inactive in vitro , rapid in vivo hydrolysis converts this compound to the antibacterially active clindamycin. Microbiology Clindamycin inhibits bacterial protein synthesis by binding to the 23S RNA of the 50S subunit of the ribosome. Clindamycin is bacteriostatic. Antimicrobial Activity Clindamycin is active in vitro against most isolates of Propionibacterium acnes; however, the clinical significance is unknown. Resistance Resistance to clindamycin is most often caused by modification of specific bases of the 23S ribosomal RNA. Cross-resistance between clindamycin and lincomycin is complete. Because the binding sites for these antibacterial drugs overlap, cross resistance is sometimes observed among lincosamides, macrolides and streptogramin B. Macrolide-inducible resistance to clindamycin occurs in some isolates of macrolide-resistant bacteria.",
+    "mechanism_of_action": "Mechanism of Action The mechanism of action of clindamycin in treating acne vulgaris is unknown.",
+    "overdosage": "OVERDOSAGE Topically applied clindamycin phosphate can be absorbed in sufficient amounts to produce systemic effects (see WARNINGS )."
+  }
+}

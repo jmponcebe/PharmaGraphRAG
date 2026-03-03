@@ -121,15 +121,46 @@ DailyMed (API) ──→ Extraction ──→ ChromaDB Vector Store
 
 ## Quick Start
 
-### Option 1: GitHub Codespaces (Fastest — no local setup)
+### Option 1: GitHub Codespaces (Fastest — zero setup)
 
-Click the button below to open a fully configured development environment in your browser:
+Click the button below to open a fully configured environment in your browser:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
-The Codespace automatically installs dependencies, starts Neo4j, and is ready to go. Just set your `GEMINI_API_KEY` in `.env` and run the data pipeline.
+Everything happens automatically:
+1. Dependencies install, Neo4j starts
+2. Demo data loads into the knowledge graph + vector store (~3 min)
+3. API + Streamlit UI start automatically
+4. **Streamlit opens in a new browser tab — ready to chat!**
 
-### Option 2: Local Setup
+> **LLM note**: Without a Gemini API key, the system auto-detects and falls back to Ollama. For best results, set `GEMINI_API_KEY` in `.env` ([free key](https://aistudio.google.com/apikey)).
+
+### Option 2: Local Quick Demo (~5 min)
+
+```bash
+# Clone and install
+git clone https://github.com/jmponcebe/PharmaGraphRAG.git
+cd PharmaGraphRAG
+uv sync --extra dev --extra ui
+
+# Configure
+cp .env.example .env
+# Optional: set GEMINI_API_KEY in .env (free: https://aistudio.google.com/apikey)
+
+# Start Neo4j + load demo data
+docker compose up -d neo4j
+uv run python scripts/setup_demo.py   # ~3 min: loads graph + embeddings
+
+# Start the app
+uv run uvicorn pharmagraphrag.api.main:app --host 0.0.0.0 &
+uv run streamlit run src/pharmagraphrag/ui/app.py
+```
+
+Demo includes 88 drugs with adverse events, interactions, and full label embeddings.
+
+### Option 3: Full Data Pipeline (complete dataset)
+
+For the complete dataset (816K reports, 4,998 drugs):
 
 #### Prerequisites
 

@@ -1,0 +1,54 @@
+{
+  "drug_name": "MELATONIN",
+  "generic_names": [
+    "1,4-BENZOQUINONE - ARNICA MONTANA - OXYTOCIN - BARIUM CARBONATE - BARIUM OXALOSUCCINATE - CORTICOTROPIN - LEAD - LEVOTHYROXINE - LUTRELIN - MALIC ACID - MELATONIN - NEUROTROPHIN-3 - NEUROTROPHIN-4 - PHENYLALANINE - PORK LIVER - PYRUVIC ACID - RINFABATE - SUS SCROFA ADRENAL GLAND - SUS SCROFA FRONTAL LOBE - SUS SCROFA HYPOTHALAMUS - THYROTROPIN ALFA - BRAIN-DERIVED NEUROTROPHIC FACTOR HUMAN -"
+  ],
+  "brand_names": [
+    "GUNA-GERIATRICS"
+  ],
+  "manufacturer": [
+    "Guna spa"
+  ],
+  "product_type": [
+    "HUMAN OTC DRUG"
+  ],
+  "route": [
+    "ORAL"
+  ],
+  "substance_name": [
+    "ARNICA MONTANA",
+    "BARIUM CARBONATE",
+    "BARIUM OXALOSUCCINATE",
+    "BRAIN-DERIVED NEUROTROPHIC FACTOR HUMAN",
+    "CORTICOTROPIN",
+    "LEAD",
+    "LEVOTHYROXINE",
+    "LUTRELIN",
+    "MALIC ACID",
+    "MELATONIN",
+    "NEUROTROPHIN-3",
+    "NEUROTROPHIN-4",
+    "OXYTOCIN",
+    "PHENYLALANINE",
+    "PORK LIVER",
+    "PYRUVIC ACID",
+    "QUINONE",
+    "RINFABATE",
+    "SUS SCROFA ADRENAL GLAND",
+    "SUS SCROFA FRONTAL LOBE",
+    "SUS SCROFA HYPOTHALAMUS",
+    "THYROTROPIN ALFA"
+  ],
+  "pharm_class_epc": [
+    "Adrenocorticotropic Hormone [EPC]",
+    "l-Thyroxine [EPC]",
+    "Oxytocic [EPC]",
+    "Thyroid Stimulating Hormone [EPC]"
+  ],
+  "pharm_class_moa": [],
+  "sections": {
+    "warnings": "WARNINGS Stop use and ask doctor if symptoms persist more than 5 days. If pregnant or breast-feeding ask a health professional before use. Keep out of reach of children. In case of overdose, get medical help or contact a Poison Control Center right away. Contains ethyl alcohol 30%",
+    "indications_and_usage": "USES TAKE 15 MINUTES BEFORE MEALS",
+    "dosage_and_administration": "DIRECTIONS Take 15 minutes before meals Adults : 20 drops in a little water, 2 times per day"
+  }
+}

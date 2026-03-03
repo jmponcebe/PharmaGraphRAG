@@ -21,6 +21,9 @@ data/external/
 *.csv
 !tests/fixtures/*.csv
 
+# === Demo data IS tracked ===
+!data/demo/
+
 # === Neo4j local data ===
 neo4j_data/
 

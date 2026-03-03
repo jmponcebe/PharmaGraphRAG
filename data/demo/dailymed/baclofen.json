@@ -1,0 +1,37 @@
+{
+  "drug_name": "BACLOFEN",
+  "generic_names": [
+    "BACLOFEN"
+  ],
+  "brand_names": [
+    "BACLOFEN"
+  ],
+  "manufacturer": [
+    "REMEDYREPACK INC."
+  ],
+  "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+  ],
+  "route": [
+    "ORAL"
+  ],
+  "substance_name": [
+    "BACLOFEN"
+  ],
+  "pharm_class_epc": [
+    "gamma-Aminobutyric Acid-ergic Agonist [EPC]"
+  ],
+  "pharm_class_moa": [
+    "GABA A Agonists [MoA]",
+    "GABA B Agonists [MoA]"
+  ],
+  "sections": {
+    "adverse_reactions": "ADVERSE REACTIONS The most common is transient drowsiness (10 to 63%). In one controlled study of 175 patients, transient drowsiness was observed in 63% of those receiving baclofen compared to 36% of those in the placebo group. Other common adverse reactions are dizziness (5 to 15%), weakness (5 to 15%) and fatigue (2 to 4%). Others reported: Neuropsychiatric: Confusion (1 to 11%), headache (4 to 8%), insomnia (2 to 7%); and, rarely, euphoria, excitement, depression, hallucinations, paresthesia, muscle pain, tinnitus, slurred speech, coordination disorder, tremor, rigidity, dystonia, ataxia, blurred vision, nystagmus, strabismus, miosis, mydriasis, diplopia, dysarthria, epileptic seizure. Cardiovascular: Hypotension (0 to 9%). Rare instances of dyspnea, palpitation, chest pain, syncope. Gastrointestinal: Nausea (4 to 12%), constipation (2 to 6%); and rarely, dry mouth, anorexia, taste disorder, abdominal pain, vomiting, diarrhea, and positive test for occult blood in stool. Genitourinary: Urinary frequency (2 to 6%); and rarely, enuresis, urinary retention, dysuria, impotence, inability to ejaculate, nocturia, hematuria. Other: Instances of rash, pruritus, ankle edema, excessive perspiration, weight gain, nasal congestion. Some of the CNS and genitourinary symptoms may be related to the underlying disease rather than to drug therapy. The following laboratory tests have been found to be abnormal in a few patients receiving baclofen: increased SGOT, elevated alkaline phosphatase, and elevation of blood sugar.",
+    "warnings": "WARNINGS a. Neonatal Withdrawal Symptoms: Withdrawal symptoms have been reported starting hours to days after delivery in neonates whose mothers were treated with oral baclofen throughout pregnancy. The symptoms of withdrawal in these infants have included increased muscle tone, tremor, jitteriness, and seizure. If the potential benefit justifies the potential risk to the fetus and oral baclofen is continued during pregnancy, gradua ly reduce the dose and discontinue baclofen before delivery. If slow withdrawal is not feasible, advise the parents or caregivers of the potential for neonatal withdrawal. b. Abrupt Drug Withdrawal: Hallucinations and seizures have occurred on abrupt withdrawal of baclofen. Therefore, except for serious adverse reactions, the dose should be reduced slowly when the drug is discontinued. c. Impaired Renal Function: Because baclofen is primarily excreted unchanged through the kidneys, it should be given with caution, and it may be necessary to reduce the dosage. d. Stroke: Baclofen has not significantly benefited patients with stroke. These patients have also shown poor tolerability to the drug. e. Pregnancy: Baclofen has been shown to increase the incidence of omphaloceles (ventral hernias) in fetuses of rats given approximately 13 times the maximum dose recommended for human use, at a dose which caused significant reductions in food intake and weight gain in dams. This abnormality was not seen in mice or rabbits. There was also an increased incidence of incomplete sternebral ossification in fetuses of rats given approximately 13 times the maximum recommended human dose, and an increased incidence of unossified phalangeal nuclei of forelimbs and hindlimbs in fetuses of rabbits given approximately 7 times the maximum recommended human dose. In mice, no teratogenic effects were observed, although reductions in mean fetal weight with consequent delays in skeletal ossification were present when dams were given 17 and 34 times the human daily dose. There are no studies in pregnant women. Baclofen should be used during pregnancy only if the benefit clearly justifies the potential risk to the fetus.",
+    "contraindications": "CONTRAINDICATIONS Hypersensitivity to baclofen.",
+    "indications_and_usage": "INDICATIONS AND USAGE Baclofen tablets, USP are useful for the alleviation of signs and symptoms of spasticity resulting from multiple sclerosis, particularly for the relief of flexor spasms and concomitant pain, clonus, and muscular rigidity. Patients should have reversible spasticity so that baclofen treatment will aid in restoring residual function. Baclofen tablets, USP may also be of some value in patients with spinal cord injuries and other spinal cord diseases. Baclofen tablets, USP are not indicated in the treatment of skeletal muscle spasm resulting from rheumatic disorders. The efficacy of baclofen in stroke, cerebral palsy, and Parkinson's disease has not been established and, therefore, it is not recommended for these conditions.",
+    "dosage_and_administration": "DOSAGE AND ADMINISTRATION The determination of optimal dosage requires individual titration. Start therapy at a low dosage and increase gradually until optimum effect is achieved (usually between 40-80 mg daily). The following dosage titration schedule is suggested: 5 mg t.i.d. for 3 days 10 mg t.i.d. for 3 days 15 mg t.i.d. for 3 days 20 mg t.i.d. for 3 days Thereafter additional increases may be necessary but the total daily dose should not exceed a maximum of 80 mg daily (20 mg q.i.d.). The lowest dose compatible with an optimal response is recommended. If benefits are not evident after a reasonable trial period, patients should be slowly withdrawn from the drug (See WARNINGS , Abrupt Drug Withdrawal ).",
+    "clinical_pharmacology": "CLINICAL PHARMACOLOGY The precise mechanism of action of baclofen is not fully known. Baclofen is capable of inhibiting both monosynaptic and polysynaptic reflexes at the spinal level, possibly by hyperpolarization of afferent terminals, although actions at supraspinal sites may also occur and contribute to its clinical effect. Although baclofen is an analog of the putative inhibitory neurotransmitter gamma-aminobutyric acid (GABA), there is no conclusive evidence that actions on GABA systems are involved in the production of its clinical effects. In studies with animals baclofen has been shown to have general CNS depressant properties as indicated by the production of sedation with tolerance, somnolence, ataxia, and respiratory and cardiovascular depression. Baclofen is rapidly and extensively absorbed and eliminated. Absorption may be dose-dependent, being reduced with increasing doses. Baclofen is excreted primarily by the kidney in unchanged form and there is relatively large intersubject variation in absorption and/or elimination.",
+    "overdosage": "OVERDOSAGE Signs and Symptoms: Vomiting, muscular hypotonia, drowsiness, accommodation disorders, coma, respiratory depression and seizures. Treatment: In the alert patient, empty the stomach promptly by induced emesis followed by lavage. In the obtunded patient, secure the airway with a cuffed endotracheal tube before beginning lavage (do not induce emesis). Maintain adequate respiratory exchange, do not use respiratory stimulants."
+  }
+}
