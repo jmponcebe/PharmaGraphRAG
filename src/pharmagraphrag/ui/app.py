@@ -347,8 +347,13 @@ def _process_question_local(question: str) -> ChatMessage:
 # ---------------------------------------------------------------------------
 
 
-def _display_message(msg: ChatMessage) -> None:
-    """Render a single chat message with optional extras."""
+def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
+    """Render a single chat message with optional extras.
+
+    Args:
+        msg: The chat message to display.
+        index: Message index used to generate unique widget keys.
+    """
     with st.chat_message(msg.role):
         st.markdown(msg.content)
 
@@ -381,7 +386,7 @@ def _display_message(msg: ChatMessage) -> None:
                     render_sources(msg.sources_graph, msg.sources_vector)
 
                 with tab_graph:
-                    render_graph(msg.sources_graph)
+                    render_graph(msg.sources_graph, key_suffix=str(index))
 
 
 # ---------------------------------------------------------------------------
@@ -401,8 +406,8 @@ def main() -> None:
     )
 
     # Display chat history
-    for msg in st.session_state.messages:
-        _display_message(msg)
+    for i, msg in enumerate(st.session_state.messages):
+        _display_message(msg, index=i)
 
     # Chat input
     if prompt := st.chat_input("Ask a question about drugs…"):
@@ -418,7 +423,7 @@ def main() -> None:
             assistant_msg = _process_question(prompt)
 
         st.session_state.messages.append(assistant_msg)
-        _display_message(assistant_msg)
+        _display_message(assistant_msg, index=len(st.session_state.messages) - 1)
 
     # Empty state
     if not st.session_state.messages:

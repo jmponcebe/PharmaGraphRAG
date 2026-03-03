@@ -31,7 +31,7 @@ _API_URL: str | None = _get_api_url()
 # ---------------------------------------------------------------------------
 
 
-def render_graph(graph_raw: dict[str, Any]) -> None:
+def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
     """Render an interactive knowledge graph from raw graph context.
 
     Uses streamlit-agraph to display Drug, AdverseEvent, Outcome, and
@@ -39,6 +39,8 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
 
     Args:
         graph_raw: Per-drug raw graph data from RetrievedContext.graph_raw.
+        key_suffix: Unique suffix for the agraph component key to avoid
+            ``StreamlitDuplicateElementId`` when multiple graphs are rendered.
     """
     if not graph_raw:
         st.info("No graph data to visualize.")
@@ -178,6 +180,7 @@ def render_graph(graph_raw: dict[str, Any]) -> None:
         nodes=list(nodes_map.values()),
         edges=edges,
         config=config,
+        key=f"graph_{key_suffix}" if key_suffix else None,
     )
 
     # Legend
