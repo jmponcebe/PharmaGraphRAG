@@ -55,9 +55,13 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
     nodes_map: dict[str, Node] = {}
     edges: list[Edge] = []
 
+    # Suffix to make node/edge IDs unique per graph instance, preventing
+    # Streamlit's DuplicateElementId error when rendering multiple graphs.
+    _s = f"__{key_suffix}" if key_suffix else ""
+
     for drug_name, ctx in graph_raw.items():
         # Drug node (central)
-        drug_id = f"drug_{drug_name}"
+        drug_id = f"drug_{drug_name}{_s}"
         if drug_id not in nodes_map:
             nodes_map[drug_id] = Node(
                 id=drug_id,
@@ -71,7 +75,7 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
         # Adverse events
         for ae in (ctx.get("adverse_events") or [])[:10]:
             ae_name = ae.get("adverse_event", "")
-            ae_id = f"ae_{ae_name}"
+            ae_id = f"ae_{ae_name}{_s}"
             count = ae.get("report_count", 0)
             if ae_id not in nodes_map:
                 nodes_map[ae_id] = Node(
@@ -95,7 +99,7 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
         # Interactions
         for inter in ctx.get("interactions") or []:
             other = inter.get("interacting_drug", "")
-            other_id = f"drug_{other}"
+            other_id = f"drug_{other}{_s}"
             if other_id not in nodes_map:
                 nodes_map[other_id] = Node(
                     id=other_id,
@@ -118,7 +122,7 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
         # Outcomes
         for out in ctx.get("outcomes") or []:
             out_desc = out.get("outcome_description", out.get("outcome_code", ""))
-            out_id = f"out_{out_desc}"
+            out_id = f"out_{out_desc}{_s}"
             count = out.get("report_count", 0)
             if out_id not in nodes_map:
                 nodes_map[out_id] = Node(
@@ -141,7 +145,7 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
 
         # Categories
         for cat in ctx.get("categories") or []:
-            cat_id = f"cat_{cat}"
+            cat_id = f"cat_{cat}{_s}"
             if cat_id not in nodes_map:
                 nodes_map[cat_id] = Node(
                     id=cat_id,
@@ -180,7 +184,6 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
         nodes=list(nodes_map.values()),
         edges=edges,
         config=config,
-        key=f"graph_{key_suffix}" if key_suffix else None,
     )
 
     # Legend
