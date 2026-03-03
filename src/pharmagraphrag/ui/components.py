@@ -11,6 +11,7 @@ from typing import Any
 
 import streamlit as st
 
+
 # Detect API mode (supports env var and Streamlit secrets)
 def _get_api_url() -> str | None:
     url = os.environ.get("API_URL")
@@ -83,7 +84,12 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
                     label=ae_name,
                     size=15,
                     color="#F44336",
-                    font={"color": "#343434", "size": 11, "strokeWidth": 3, "strokeColor": "#ffffff"},
+                    font={
+                        "color": "#343434",
+                        "size": 11,
+                        "strokeWidth": 3,
+                        "strokeColor": "#ffffff",
+                    },
                     shape="dot",
                 )
             edges.append(
@@ -106,7 +112,12 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
                     label=other,
                     size=25,
                     color="#2196F3",
-                    font={"color": "#343434", "size": 13, "strokeWidth": 3, "strokeColor": "#ffffff"},
+                    font={
+                        "color": "#343434",
+                        "size": 13,
+                        "strokeWidth": 3,
+                        "strokeColor": "#ffffff",
+                    },
                     shape="dot",
                 )
             edges.append(
@@ -130,7 +141,12 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
                     label=out_desc,
                     size=18,
                     color="#9C27B0",
-                    font={"color": "#343434", "size": 11, "strokeWidth": 3, "strokeColor": "#ffffff"},
+                    font={
+                        "color": "#343434",
+                        "size": 11,
+                        "strokeWidth": 3,
+                        "strokeColor": "#ffffff",
+                    },
                     shape="diamond",
                 )
             edges.append(
@@ -152,7 +168,12 @@ def render_graph(graph_raw: dict[str, Any], *, key_suffix: str = "") -> None:
                     label=cat,
                     size=20,
                     color="#FF9800",
-                    font={"color": "#343434", "size": 12, "strokeWidth": 3, "strokeColor": "#ffffff"},
+                    font={
+                        "color": "#343434",
+                        "size": 12,
+                        "strokeWidth": 3,
+                        "strokeColor": "#ffffff",
+                    },
                     shape="triangle",
                 )
             edges.append(

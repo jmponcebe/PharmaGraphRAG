@@ -28,15 +28,16 @@ _src_dir = str(Path(__file__).resolve().parent.parent.parent)
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
+
 # Detect API mode: if API_URL is set, use HTTP; otherwise import engine locally.
 # Supports both env vars and Streamlit Cloud secrets.
 def _get_api_url() -> str | None:
     url = os.environ.get("API_URL")
     if not url:
-        try:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             url = st.secrets.get("API_URL")  # type: ignore[union-attr]
-        except Exception:
-            pass
     return url or None
 
 
@@ -434,7 +435,7 @@ def main() -> None:
         if API_URL:
             st.info(
                 "**Powered by GraphRAG** — This system queries FDA FAERS reports "
-                "(816K reports, 2024 Q3–Q4) and DailyMed drug labels (88 drugs) "
+                "(816K reports, 2024 Q3-Q4) and DailyMed drug labels (88 drugs) "
                 "using a knowledge graph (Neo4j) + vector search (ChromaDB) + LLM. "
                 "For educational/portfolio purposes only — not for clinical decision-making.",
                 icon=":material/medication:",
