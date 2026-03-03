@@ -146,6 +146,8 @@ graph TB
     VR --> CTX
     CTX --> GEMINI
     GEMINI -.->|fallback| OLLAMA
+    GEMINI --> API
+    OLLAMA -.-> API
 ```
 
 ### Query Flow
@@ -228,8 +230,6 @@ uv run streamlit run src/pharmagraphrag/ui/app.py
 Demo includes 88 drugs with adverse events, interactions, and full label embeddings.
 
 </details>
-
-> **⚠️ Disclaimer**: This project is for **educational/portfolio purposes only** and should not be used for clinical decision-making.
 
 ### Option 4: Build from Source
 
@@ -405,6 +405,10 @@ src/pharmagraphrag/
 | BELONGS_TO | 47 |
 
 </details>
+
+---
+
+> **⚠️ Disclaimer**: This project is for **educational and portfolio purposes only**. It is not intended for clinical decision-making.
 
 ## License
 
