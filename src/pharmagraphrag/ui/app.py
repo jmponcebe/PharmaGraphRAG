@@ -15,11 +15,18 @@ Usage:
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
 from loguru import logger
+
+# Ensure package is importable when running as a script (e.g. Streamlit Cloud)
+_src_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 # Detect API mode: if API_URL is set, use HTTP; otherwise import engine locally.
 # Supports both env vars and Streamlit Cloud secrets.
