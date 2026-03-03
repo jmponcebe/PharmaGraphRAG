@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-145%20passing-brightgreen.svg)](#testing)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/demo-pharmagraph.streamlit.app-FF4B4B.svg)](https://pharmagraph.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/demo-pharmagraphrag.streamlit.app-FF4B4B.svg)](https://pharmagraphrag.streamlit.app)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/jmponcebe/PharmaGraphRAG?quickstart=1)
 
 > **GraphRAG system for querying drug interactions and adverse events using FDA data.**
@@ -21,11 +21,9 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
-- [API Endpoints](#api-endpoints)
-- [Cloud Deployment](#cloud-deployment-free-tier)
-- [Knowledge Graph Schema](#knowledge-graph-schema)
+- [Cloud Deployment](#cloud-deployment)
 - [Development](#development)
-- [Project Structure](#project-structure)
+- [Knowledge Graph Schema](#knowledge-graph-schema)
 
 ---
 
@@ -74,7 +72,12 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
 - **One-click Codespaces**: try it instantly from your browser
 
-## Status
+### Example Questions
+
+> *"What are the side effects of ibuprofen?"* · *"Does metformin interact with other drugs?"* · *"Compare the safety profiles of aspirin and clopidogrel"* · *"What drugs cause liver damage?"*
+
+<details>
+<summary><strong>Component Status</strong> — all modules complete, 145 tests passing</summary>
 
 | Component | Status | Details |
 |---|---|---|
@@ -89,43 +92,12 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
 | Tests | ✅ 145 passing | Data pipeline (27) + vectors (35) + engine (37) + LLM (14) + API (16) + UI (14) |
 
-## Example Questions
-
-- *"What are the side effects of ibuprofen?"*
-- *"Does metformin interact with other drugs?"*
-- *"What adverse events are associated with warfarin?"*
-- *"Compare the safety profile of aspirin and clopidogrel"*
-- *"What drugs cause liver damage?"*
-
-## Example API Response
-
-```bash
-curl -s -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are the side effects of ibuprofen?"}'
-```
-
-```json
-{
-  "answer": "Based on FDA FAERS data, ibuprofen is associated with several adverse events...",
-  "drugs_extracted": ["IBUPROFEN"],
-  "drugs_found": ["IBUPROFEN"],
-  "sources": {
-    "graph": {
-      "adverse_events": ["DRUG INEFFECTIVE (1,245)", "NAUSEA (892)", "PAIN (654)", "..."],
-      "interactions": ["ASPIRIN", "NAPROXEN", "..."],
-      "outcomes": ["Hospitalization (2,341)", "Death (156)", "..."]
-    },
-    "vector": ["drug_interactions (similarity: 94%)", "adverse_reactions (similarity: 91%)", "..."]
-  },
-  "llm_provider": "gemini",
-  "llm_model": "gemini-2.5-flash"
-}
-```
+</details>
 
 ## Architecture
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph TB
     subgraph Data Sources
         FAERS["🏥 FDA FAERS<br/><i>816K adverse event reports</i>"]
@@ -176,16 +148,6 @@ graph TB
     GEMINI -.->|fallback| OLLAMA
     GEMINI --> API
     OLLAMA -.-> API
-
-    style FAERS fill:#e3f2fd,stroke:#1565c0
-    style DM fill:#e3f2fd,stroke:#1565c0
-    style NEO4J fill:#d1c4e9,stroke:#4527a0
-    style CHROMA fill:#c8e6c9,stroke:#2e7d32
-    style GEMINI fill:#fff3e0,stroke:#e65100
-    style OLLAMA fill:#fff3e0,stroke:#e65100
-    style UI fill:#fce4ec,stroke:#c62828
-    style API fill:#fce4ec,stroke:#c62828
-    style USER fill:#f5f5f5,stroke:#616161
 ```
 
 ### Query Flow
@@ -206,7 +168,7 @@ graph TB
 | Knowledge Graph | Neo4j 5 Community (Docker) |
 | Vector Store | ChromaDB (embedded, SQLite-backed) |
 | Embeddings | sentence-transformers (all-MiniLM-L6-v2, 384 dims) |
-| LLM Primary | Google Gemini API (gemini-2.5-flash, free tier) |
+| LLM Primary | Google Gemini API (gemini-2.5-flash) |
 | LLM Backup | Ollama + Llama 3 / Mistral (local) |
 | NLP | rapidfuzz (fuzzy entity matching) |
 | API | FastAPI + Pydantic v2 |
@@ -227,7 +189,7 @@ graph TB
 
 ### Option 1: Live Demo (instant — no setup)
 
-**👉 [pharmagraph.streamlit.app](https://pharmagraph.streamlit.app)**
+**👉 [pharmagraphrag.streamlit.app](https://pharmagraphrag.streamlit.app)**
 
 The deployed version runs the **full dataset** (816K FDA FAERS reports, 88 drug labels, 5,654 vector embeddings) on:
 - **Neo4j Aura** — knowledge graph with 11.9K nodes and 381K relationships
@@ -252,6 +214,9 @@ Everything happens automatically:
 
 ### Option 3: Local Quick Demo (~5 min)
 
+<details>
+<summary>📋 Click to expand setup instructions</summary>
+
 ```bash
 # Clone and install
 git clone https://github.com/jmponcebe/PharmaGraphRAG.git
@@ -273,9 +238,14 @@ uv run streamlit run src/pharmagraphrag/ui/app.py
 
 Demo includes 88 drugs with adverse events, interactions, and full label embeddings.
 
-> **⚠️ Demo data disclaimer**: The demo dataset is a representative subset — it includes the top 15 adverse events per drug (by report count) and 88 drug labels. Results may differ from the full dataset (816K reports, 4,998 drugs). For production-grade analysis, run the [complete data pipeline](#option-3-full-data-pipeline-complete-dataset). This project is for educational/portfolio purposes only and should **not** be used for clinical decision-making.
+</details>
+
+> **⚠️ Disclaimer**: This project is for **educational/portfolio purposes only** and should not be used for clinical decision-making.
 
 ### Option 4: Full Data Pipeline (complete dataset)
+
+<details>
+<summary>📋 Click to expand full pipeline instructions</summary>
 
 For the complete dataset (816K reports, 4,998 drugs):
 
@@ -284,199 +254,111 @@ For the complete dataset (816K reports, 4,998 drugs):
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Docker and Docker Compose
-- Gemini API key ([free tier](https://aistudio.google.com/apikey)) or Ollama installed locally
+- Gemini API key ([free](https://aistudio.google.com/apikey)) or Ollama installed locally
 
 #### Installation
 
 ```bash
-# Clone the repo
 git clone https://github.com/jmponcebe/PharmaGraphRAG.git
 cd PharmaGraphRAG
-
-# Install all dependencies
 uv sync --extra dev
-
-# Copy and configure environment variables
 cp .env.example .env
 # Edit .env: set GEMINI_API_KEY, adjust NEO4J_PASSWORD if needed
 ```
 
-### Data Pipeline
+#### Data Pipeline
 
 ```bash
-# Start Neo4j
 docker compose up -d neo4j
 
-# 1. Download FAERS data (~135MB)
-uv run python scripts/download_faers.py
-
-# 2. Clean FAERS → Parquet
-uv run python scripts/clean_faers.py
-
-# 3. Fetch DailyMed drug labels
-uv run python scripts/ingest_dailymed.py
-
-# 4. Load knowledge graph into Neo4j
-uv run python scripts/load_graph.py
-
-# 5. Build vector store (ChromaDB)
-uv run python scripts/load_vectorstore.py
-
-# 6. Validate semantic search
-uv run python scripts/validate_search.py
+uv run python scripts/download_faers.py     # Download FAERS data (~135MB)
+uv run python scripts/clean_faers.py         # Clean FAERS → Parquet
+uv run python scripts/ingest_dailymed.py     # Fetch DailyMed drug labels
+uv run python scripts/load_graph.py          # Load knowledge graph into Neo4j
+uv run python scripts/load_vectorstore.py    # Build vector store (ChromaDB)
+uv run python scripts/validate_search.py     # Validate semantic search
 ```
 
-### Running the Application
-
-#### Option A: Local (development)
+#### Running the Application
 
 ```bash
-# Start API (port 8000)
+# Option A: Local (development)
 uv run uvicorn pharmagraphrag.api.main:app --reload
-
-# Start UI (port 8501, in another terminal)
 uv run streamlit run src/pharmagraphrag/ui/app.py
-```
 
-#### Option B: Docker Compose (production)
-
-```bash
-# All services (Neo4j + API + UI)
+# Option B: Docker Compose (production)
 docker compose up --build -d
-
-# With local Ollama LLM
-docker compose --profile ollama up --build -d
 ```
 
-| Service | URL | Description |
-|---|---|---|
-| Streamlit UI | <http://localhost:8501> | Chat interface with graph visualization |
-| FastAPI | <http://localhost:8000> | REST API (Swagger at /docs) |
-| FastAPI docs | <http://localhost:8000/docs> | Interactive API documentation |
-| Neo4j Browser | <http://localhost:7474> | Knowledge graph browser |
+</details>
 
 ### API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/query` | Ask a question, get a RAG-powered answer |
-| `GET` | `/drug/{name}` | Get graph data for a specific drug |
-| `GET` | `/drugs/search?q=` | Search drugs by name prefix (for autocomplete) |
-| `GET` | `/health` | Health check (Neo4j + ChromaDB status) |
+| `POST` | `/query` | Ask a question → RAG-powered answer with sources |
+| `GET` | `/drug/{name}` | Graph data for a specific drug |
+| `GET` | `/drugs/search?q=` | Search drugs by name prefix |
+| `GET` | `/health` | Service health check |
 
-#### Example: Query
+Interactive documentation available at [`/docs`](https://pharmagraphrag-api-893694384146.us-central1.run.app/docs) (Swagger UI).
 
+## Cloud Deployment
+
+The project is **deployed and live** on a distributed cloud architecture:
+
+| Service | Platform | URL |
+|---|---|---|
+| Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | [pharmagraphrag.streamlit.app](https://pharmagraphrag.streamlit.app) |
+| API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | [pharmagraphrag-api-...run.app](https://pharmagraphrag-api-893694384146.us-central1.run.app/health) |
+| Knowledge Graph | [Neo4j Aura](https://neo4j.com/cloud/aura-free/) | Managed instance (11.9K nodes, 381K rels) |
+
+<details>
+<summary>📋 Reproducing the deployment</summary>
+
+**Neo4j Aura** — Create a free instance at [console.neo4j.io](https://console.neo4j.io), then migrate data:
 ```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are the side effects of ibuprofen?"}'
+uv run python scripts/migrate_neo4j.py \
+    --source bolt://localhost:7687 --source-password pharmagraphrag \
+    --target neo4j+s://<id>.databases.neo4j.io --target-password <aura-password>
 ```
 
-#### Example: Drug Info
-
+**Google Cloud Run** — Build and deploy the API:
 ```bash
-curl http://localhost:8000/drug/IBUPROFEN
+docker build -f docker/Dockerfile.cloudrun -t gcr.io/<project>/pharmagraphrag-api .
+docker push gcr.io/<project>/pharmagraphrag-api
+gcloud run deploy pharmagraphrag-api --image gcr.io/<project>/pharmagraphrag-api \
+    --platform managed --region us-central1 --allow-unauthenticated \
+    --set-env-vars NEO4J_URI=...,NEO4J_USER=neo4j,NEO4J_PASSWORD=...,GEMINI_API_KEY=...
 ```
+
+**Streamlit Community Cloud** — Connect your GitHub repo at [share.streamlit.io](https://share.streamlit.io), set main file to `src/pharmagraphrag/ui/app.py`, and add `API_URL` as a secret.
+
+</details>
 
 ## Development
 
 ### Testing
 
 ```bash
-# Run all tests (145 tests)
-uv run pytest
-
-# Run with verbose output
-uv run pytest -v
-
-# Run specific test file
-uv run pytest tests/test_engine.py -v
-
-# Run with coverage
-uv run pytest --cov=pharmagraphrag --cov-report=html
+uv run pytest               # Run all 145 tests
+uv run pytest -v             # Verbose output
+uv run pytest tests/test_engine.py  # Specific module
 ```
 
-### Linting and Formatting
+<details>
+<summary>📋 Linting, formatting & type checking</summary>
 
 ```bash
-# Check lint
-uv run ruff check src/ tests/
-
-# Auto-fix lint issues
-uv run ruff check src/ tests/ --fix
-
-# Check formatting
-uv run ruff format --check src/ tests/
-
-# Auto-format
-uv run ruff format src/ tests/
-
-# Type check
-uv run mypy src/
+uv run ruff check src/ tests/              # Lint
+uv run ruff check src/ tests/ --fix        # Auto-fix
+uv run ruff format src/ tests/             # Format
+uv run mypy src/                           # Type check
 ```
 
-## Cloud Deployment (Free Tier)
+</details>
 
-The project is **deployed and live** using a distributed free-tier architecture:
-
-| Service | Platform | URL | Cost |
-|---|---|---|---|
-| Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | [pharmagraph.streamlit.app](https://pharmagraph.streamlit.app) | $0 |
-| API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | [pharmagraphrag-api-893694384146.us-central1.run.app](https://pharmagraphrag-api-893694384146.us-central1.run.app/health) | $0 (free tier) |
-| Knowledge Graph | [Neo4j Aura Free](https://neo4j.com/cloud/aura-free/) | Managed instance (11.9K nodes, 381K rels) | $0 (200K nodes) |
-
-### Reproducing the Deployment
-
-### Step 1: Neo4j Aura Free
-
-1. Create a free instance at [console.neo4j.io](https://console.neo4j.io)
-2. Save the connection URI and password
-3. Migrate data from your local Neo4j:
-
-```bash
-uv run python scripts/migrate_neo4j.py \
-    --source bolt://localhost:7687 \
-    --source-password pharmagraphrag \
-    --target neo4j+s://<id>.databases.neo4j.io \
-    --target-password <aura-password>
-```
-
-Or load demo data directly into Aura:
-
-```bash
-NEO4J_URI=neo4j+s://<id>.databases.neo4j.io \
-NEO4J_PASSWORD=<aura-password> \
-uv run python scripts/setup_demo.py
-```
-
-### Step 2: Google Cloud Run (API)
-
-```bash
-# Build the image (requires data/chroma/ to be populated)
-docker build -f docker/Dockerfile.cloudrun -t gcr.io/<project>/pharmagraphrag-api .
-
-# Push to Google Container Registry
-docker push gcr.io/<project>/pharmagraphrag-api
-
-# Deploy
-gcloud run deploy pharmagraphrag-api \
-    --image gcr.io/<project>/pharmagraphrag-api \
-    --platform managed --region us-central1 \
-    --allow-unauthenticated \
-    --set-env-vars NEO4J_URI=neo4j+s://<id>.databases.neo4j.io,NEO4J_USER=neo4j,NEO4J_PASSWORD=<pw>,GEMINI_API_KEY=<key>
-```
-
-### Step 3: Streamlit Community Cloud (UI)
-
-1. Go to [share.streamlit.io](https://share.streamlit.io) and connect your GitHub repo
-2. Configure:
-   - **Main file**: `src/pharmagraphrag/ui/app.py`
-   - **Requirements file**: `requirements-streamlit.txt`
-3. Add secret in Streamlit Cloud settings: `API_URL = "https://pharmagraphrag-api-xxx.run.app"`
-
-The Streamlit app auto-detects `API_URL` and switches to API mode (HTTP calls to Cloud Run instead of local imports).
-
-## Project Structure
+### Project Structure
 
 ```
 src/pharmagraphrag/
@@ -509,6 +391,9 @@ src/pharmagraphrag/
 
 ## Knowledge Graph Schema
 
+<details>
+<summary>📋 Nodes, relationships, and statistics</summary>
+
 ```cypher
 (:Drug)-[:CAUSES {report_count}]->(:AdverseEvent)
 (:Drug)-[:INTERACTS_WITH {source, description}]->(:Drug)
@@ -529,6 +414,8 @@ src/pharmagraphrag/
 | HAS_OUTCOME | 15,759 |
 | INTERACTS_WITH | 193 |
 | BELONGS_TO | 47 |
+
+</details>
 
 ## License
 
