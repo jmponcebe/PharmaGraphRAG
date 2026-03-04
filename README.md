@@ -97,57 +97,99 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 ## Architecture
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#f4f7f6', 'fontFamily': 'Helvetica, Arial, sans-serif', 'fontSize': '14px'}}}%%
 graph TB
-    subgraph Data Sources
-        FAERS["🏥 FDA FAERS<br/><i>816K adverse event reports</i>"]
-        DM["💊 DailyMed<br/><i>88 drug labels</i>"]
+    %% --- PROFESSIONAL COLOR PALETTE & STYLES ---
+    classDef interface fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100,rx:8,ry:8;
+    classDef llm fill:#ede7f6,stroke:#673ab7,stroke-width:2px,color:#4527a0,rx:8,ry:8;
+    classDef engine fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,color:#0d47a1,rx:8,ry:8;
+    classDef storage fill:#e8f5e9,stroke:#4caf50,stroke-width:3px,color:#1b5e20,rx:5,ry:5;
+    classDef ingestion fill:#eceff1,stroke:#607d8b,stroke-width:2px,color:#37474f,rx:5,ry:5;
+    classDef userNode fill:#263238,stroke:#263238,stroke-width:2px,color:#ffffff,rx:50,ry:50,font-weight:bold;
+
+    %% ======== LAYER 1: USER INTERFACE (TOP) ========
+    subgraph TopLayer ["⚡ INTERFACE LAYER"]
+        direction TB
+        USER(("👤 User")):::userNode
+        
+        subgraph App ["Application"]
+             direction LR
+             UI["💬 Streamlit<br/><i>Chat UI + Graph Viz</i>"]:::interface
+             API["⚡ FastAPI<br/><i>REST API</i>"]:::interface
+        end
     end
 
-    subgraph Data Pipeline
-        CLEAN["🔧 Cleaning &amp; Normalization<br/><i>Parquet files</i>"]
+    %% ======== LAYER 2: PROCESSING CORE (MIDDLE) ========
+    subgraph MiddleLayer ["🧠 PROCESSING (RAG & LLM)"]
+        direction TB
+        
+        %% Query Engine Components
+        subgraph QE ["Query Engine"]
+            direction TB
+            NER["🔍 Entity Extraction<br/><i>exact + fuzzy matching</i>"]:::engine
+            
+            subgraph Ret ["Retrieval"]
+                 direction LR
+                 GR["📊 Graph Retrieval<br/><i>Cypher queries</i>"]:::engine
+                 VR["📄 Vector Retrieval<br/><i>semantic search</i>"]:::engine
+            end
+            
+            CTX["🧩 Context Assembly<br/><i>merge graph + vector</i>"]:::engine
+        end
+
+        %% LLM Components placed next to context assembly
+        subgraph Brain ["LLM Inference"]
+            direction LR
+            GEMINI["✨ Gemini API<br/><i>primary</i>"]:::llm
+            OLLAMA["🦙 Ollama<br/><i>fallback</i>"]:::llm
+        end
     end
 
-    subgraph Storage
-        NEO4J[("🔷 Neo4j<br/>Knowledge Graph<br/><i>11.9K nodes · 381K rels</i>")]
-        CHROMA[("🟢 ChromaDB<br/>Vector Store<br/><i>5,654 chunks · 384 dims</i>")]
+    %% ======== LAYER 3: KNOWLEDGE BASE (FOUNDATION) ========
+    subgraph StorageLayer ["💾 KNOWLEDGE STORAGE"]
+        direction LR
+        NEO4J[("🔷 Neo4j<br/>Knowledge Graph<br/><i>11.9K nodes · 381K rels</i>")]:::storage
+        CHROMA[("🟢 ChromaDB<br/>Vector Store<br/><i>5,654 chunks · 384 dims</i>")]:::storage
     end
 
-    subgraph "Query Engine"
-        NER["🔍 Entity Extraction<br/><i>exact + fuzzy matching</i>"]
-        GR["📊 Graph Retrieval<br/><i>Cypher queries</i>"]
-        VR["📄 Vector Retrieval<br/><i>semantic search</i>"]
-        CTX["🧩 Context Assembly<br/><i>merge graph + vector</i>"]
+    %% ======== LAYER 4: DATA INGESTION (BOTTOM) ========
+    subgraph BottomLayer ["📚 DATA INGESTION PIPELINE"]
+        direction TB
+        CLEAN["🔧 Cleaning & Normalization<br/><i>Parquet files</i>"]:::ingestion
+        
+        subgraph Sources ["Raw Data Sources"]
+            direction LR
+            FAERS["🏥 FDA FAERS<br/><i>816K adverse event reports</i>"]:::ingestion
+            DM["💊 DailyMed<br/><i>88 drug labels</i>"]:::ingestion
+        end
     end
 
-    subgraph LLM
-        GEMINI["✨ Gemini API<br/><i>primary</i>"]
-        OLLAMA["🦙 Ollama<br/><i>fallback</i>"]
-    end
-
-    subgraph Interface
-        API["⚡ FastAPI<br/><i>REST API</i>"]
-        UI["💬 Streamlit<br/><i>Chat UI + Graph Viz</i>"]
-    end
-
-    FAERS --> CLEAN
-    DM --> CLEAN
-    CLEAN --> NEO4J
-    CLEAN --> CHROMA
-
-    USER(("👤 User")) <--> UI
+    %% ======== CONNECTIONS ========
+    %% Flow: User -> App -> Engine
+    USER <--> UI
     UI <--> API
     API --> NER
-    NER --> GR
-    NER --> VR
+    
+    %% Flow: Engine Internals
+    NER --> GR & VR
+    GR & VR --> CTX
+    
+    %% Flow: Engine <-> Storage (The Bridge)
     GR <--> NEO4J
     VR <--> CHROMA
-    GR --> CTX
-    VR --> CTX
+
+    %% Flow: Engine -> LLM -> App
     CTX --> GEMINI
     GEMINI -.->|fallback| OLLAMA
     GEMINI --> API
     OLLAMA -.-> API
+
+    %% Flow: Ingestion (Bottom Up)
+    FAERS & DM --> CLEAN
+    CLEAN --> NEO4J & CHROMA
+
+    %% Styling links for a cleaner look
+    linkStyle default stroke:#78909c,stroke-width:2px,fill:none;
 ```
 
 ### Query Flow
