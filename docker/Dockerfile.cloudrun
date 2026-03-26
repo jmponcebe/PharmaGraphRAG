@@ -57,6 +57,9 @@ RUN uv pip install --reinstall --no-cache \
               /app/.venv/lib/python*/site-packages/_cuda_*.pth \
               /app/.venv/lib/python*/site-packages/_cuda_*.py
 
+# Pre-cache the embedding model to avoid HuggingFace downloads on cold start
+RUN /app/.venv/bin/python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # ---- Stage 2: runtime ----
 FROM python:3.12-slim AS runtime
 
@@ -70,11 +73,14 @@ WORKDIR /app
 # Installed Python environment
 COPY --from=builder /app /app
 
+# HuggingFace model cache (pre-downloaded in builder)
+COPY --from=builder /root/.cache/huggingface /home/appuser/.cache/huggingface
+
 # Pre-built ChromaDB embeddings (required)
 COPY data/chroma/ /app/data/chroma/
 
-# Ensure data dir is owned by appuser
-RUN chown -R appuser:appuser /app/data
+# Ensure data dir and model cache are owned by appuser
+RUN chown -R appuser:appuser /app/data /home/appuser/.cache
 
 USER appuser
 
