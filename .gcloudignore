@@ -1,0 +1,41 @@
+# Cloud Build ignore file
+# Based on .gitignore but INCLUDES data/chroma/ for Cloud Run builds
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data (exclude raw/processed, KEEP chroma for Cloud Run image)
+data/raw/
+data/processed/
+data/external/
+
+# Neo4j
+neo4j_data/
+docker/neo4j_data/
+
+# Misc
+.git/
+.github/
+.env
+*.log
+docs/
+notebooks/
+htmlcov/
+assets/
+secrets/
+node_modules/
+dist/
+build/
+*.egg-info

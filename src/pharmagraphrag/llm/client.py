@@ -96,8 +96,8 @@ def _generate_gemini(
                 system_instruction=system_prompt,
                 temperature=0.3,
                 max_output_tokens=2048,
+                httpOptions=types.HttpOptions(timeout=60_000),
             ),
-            http_options={"timeout": 60_000},
         )
 
         text = response.text or ""
