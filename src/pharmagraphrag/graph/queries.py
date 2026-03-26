@@ -14,14 +14,22 @@ from neo4j import Driver, GraphDatabase
 
 from pharmagraphrag.config import get_settings
 
+_driver: Driver | None = None
+
 
 def _get_driver() -> Driver:
-    """Create a Neo4j driver from settings."""
+    """Get or create a singleton Neo4j driver (reuses connections)."""
+    global _driver
+    if _driver is not None:
+        return _driver
     settings = get_settings()
-    return GraphDatabase.driver(
+    _driver = GraphDatabase.driver(
         settings.neo4j_uri,
         auth=(settings.neo4j_user, settings.neo4j_password),
+        max_connection_lifetime=3600,
+        connection_timeout=30,
     )
+    return _driver
 
 
 def get_drug_info(drug_name: str) -> dict | None:
@@ -34,23 +42,20 @@ def get_drug_info(drug_name: str) -> dict | None:
         Dictionary with drug properties, or None if not found.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)
-                WHERE toUpper(d.name) = toUpper($name)
-                RETURN d {
-                    .name, .generic_names, .brand_names,
-                    .category, .route, .role_cod
-                } AS drug
-                """,
-                name=drug_name,
-            )
-            record = result.single()
-            return dict(record["drug"]) if record else None
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)
+            WHERE toUpper(d.name) = toUpper($name)
+            RETURN d {
+                .name, .generic_names, .brand_names,
+                .category, .route, .role_cod
+            } AS drug
+            """,
+            name=drug_name,
+        )
+        record = result.single()
+        return dict(record["drug"]) if record else None
 
 
 def get_drug_adverse_events(drug_name: str, limit: int = 20) -> list[dict]:
@@ -64,23 +69,20 @@ def get_drug_adverse_events(drug_name: str, limit: int = 20) -> list[dict]:
         List of dicts with adverse event name and report count.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)-[r:CAUSES]->(ae:AdverseEvent)
-                WHERE toUpper(d.name) = toUpper($name)
-                RETURN ae.name AS adverse_event,
-                       r.report_count AS report_count
-                ORDER BY r.report_count DESC
-                LIMIT $limit
-                """,
-                name=drug_name,
-                limit=limit,
-            )
-            return [dict(record) for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[r:CAUSES]->(ae:AdverseEvent)
+            WHERE toUpper(d.name) = toUpper($name)
+            RETURN ae.name AS adverse_event,
+                   r.report_count AS report_count
+            ORDER BY r.report_count DESC
+            LIMIT $limit
+            """,
+            name=drug_name,
+            limit=limit,
+        )
+        return [dict(record) for record in result]
 
 
 def get_drug_interactions(drug_name: str) -> list[dict]:
@@ -93,21 +95,18 @@ def get_drug_interactions(drug_name: str) -> list[dict]:
         List of dicts with interacting drug name and description.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)-[r:INTERACTS_WITH]-(other:Drug)
-                WHERE toUpper(d.name) = toUpper($name)
-                RETURN other.name AS interacting_drug,
-                       r.description AS description,
-                       r.source AS source
-                """,
-                name=drug_name,
-            )
-            return [dict(record) for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[r:INTERACTS_WITH]-(other:Drug)
+            WHERE toUpper(d.name) = toUpper($name)
+            RETURN other.name AS interacting_drug,
+                   r.description AS description,
+                   r.source AS source
+            """,
+            name=drug_name,
+        )
+        return [dict(record) for record in result]
 
 
 def get_drug_outcomes(drug_name: str) -> list[dict]:
@@ -120,22 +119,19 @@ def get_drug_outcomes(drug_name: str) -> list[dict]:
         List of dicts with outcome code, description, and report count.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)-[r:HAS_OUTCOME]->(o:Outcome)
-                WHERE toUpper(d.name) = toUpper($name)
-                RETURN o.code AS outcome_code,
-                       o.description AS outcome_description,
-                       r.report_count AS report_count
-                ORDER BY r.report_count DESC
-                """,
-                name=drug_name,
-            )
-            return [dict(record) for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[r:HAS_OUTCOME]->(o:Outcome)
+            WHERE toUpper(d.name) = toUpper($name)
+            RETURN o.code AS outcome_code,
+                   o.description AS outcome_description,
+                   r.report_count AS report_count
+            ORDER BY r.report_count DESC
+            """,
+            name=drug_name,
+        )
+        return [dict(record) for record in result]
 
 
 def get_drug_category(drug_name: str) -> list[str]:
@@ -148,19 +144,16 @@ def get_drug_category(drug_name: str) -> list[str]:
         List of category names.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)-[:BELONGS_TO]->(dc:DrugCategory)
-                WHERE toUpper(d.name) = toUpper($name)
-                RETURN dc.name AS category
-                """,
-                name=drug_name,
-            )
-            return [record["category"] for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[:BELONGS_TO]->(dc:DrugCategory)
+            WHERE toUpper(d.name) = toUpper($name)
+            RETURN dc.name AS category
+            """,
+            name=drug_name,
+        )
+        return [record["category"] for record in result]
 
 
 def get_adverse_event_drugs(event_name: str, limit: int = 20) -> list[dict]:
@@ -174,23 +167,20 @@ def get_adverse_event_drugs(event_name: str, limit: int = 20) -> list[dict]:
         List of dicts with drug name and report count.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)-[r:CAUSES]->(ae:AdverseEvent)
-                WHERE toUpper(ae.name) = toUpper($name)
-                RETURN d.name AS drug_name,
-                       r.report_count AS report_count
-                ORDER BY r.report_count DESC
-                LIMIT $limit
-                """,
-                name=event_name,
-                limit=limit,
-            )
-            return [dict(record) for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[r:CAUSES]->(ae:AdverseEvent)
+            WHERE toUpper(ae.name) = toUpper($name)
+            RETURN d.name AS drug_name,
+                   r.report_count AS report_count
+            ORDER BY r.report_count DESC
+            LIMIT $limit
+            """,
+            name=event_name,
+            limit=limit,
+        )
+        return [dict(record) for record in result]
 
 
 def search_drugs(query: str, limit: int = 10) -> list[str]:
@@ -204,22 +194,19 @@ def search_drugs(query: str, limit: int = 10) -> list[str]:
         List of matching drug names.
     """
     driver = _get_driver()
-    try:
-        with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (d:Drug)
-                WHERE toUpper(d.name) CONTAINS toUpper($search_term)
-                RETURN d.name AS name
-                ORDER BY d.name
-                LIMIT $limit
-                """,
-                search_term=query,
-                limit=limit,
-            )
-            return [record["name"] for record in result]
-    finally:
-        driver.close()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)
+            WHERE toUpper(d.name) CONTAINS toUpper($search_term)
+            RETURN d.name AS name
+            ORDER BY d.name
+            LIMIT $limit
+            """,
+            search_term=query,
+            limit=limit,
+        )
+        return [record["name"] for record in result]
 
 
 def get_drug_full_context(drug_name: str) -> dict:

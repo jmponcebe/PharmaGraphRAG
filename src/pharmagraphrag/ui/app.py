@@ -197,7 +197,7 @@ def _process_question_api(question: str) -> ChatMessage:
                 "use_llm": s["use_llm"],
                 "n_results": s["n_results"],
             },
-            timeout=120,
+            timeout=180,
         )
 
         if resp.status_code != 200:
@@ -213,7 +213,7 @@ def _process_question_api(question: str) -> ChatMessage:
         graph_raw: dict[str, Any] = {}
         for drug in data.get("drugs_found_in_graph", []):
             try:
-                dr = req_lib.get(f"{base}/drug/{drug}", timeout=30)
+                dr = req_lib.get(f"{base}/drug/{drug}", timeout=60)
                 if dr.status_code == 200:
                     dd = dr.json()
                     graph_raw[drug] = {

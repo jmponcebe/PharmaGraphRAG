@@ -97,6 +97,7 @@ def _generate_gemini(
                 temperature=0.3,
                 max_output_tokens=2048,
             ),
+            http_options={"timeout": 60_000},
         )
 
         text = response.text or ""
