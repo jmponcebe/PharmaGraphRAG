@@ -262,6 +262,15 @@ def _process_question_api(question: str) -> ChatMessage:
             content=f"❌ Cannot connect to API at `{base}`. Is the service running?",
             error="Connection error",
         )
+    except req_lib.exceptions.ReadTimeout:
+        return ChatMessage(
+            role="assistant",
+            content=(
+                "⏳ The request timed out. The API may be experiencing a cold start "
+                "(first request after inactivity can take ~50s). Please try again."
+            ),
+            error="Read timeout",
+        )
     except Exception as exc:
         logger.error("API call failed: {}", exc)
         return ChatMessage(
@@ -424,8 +433,25 @@ def main() -> None:
             st.markdown(prompt)
 
         # Process and display assistant response
-        with st.spinner("Analyzing query…"):
-            assistant_msg = _process_question(prompt)
+        if API_URL:
+            import time
+
+            with st.status("Querying PharmaGraphRAG…", expanded=True) as status:
+                st.write("🔌 Connecting to API…")
+                st.caption(
+                    "First query after inactivity may take ~50s (cold start)."
+                )
+                start = time.time()
+                assistant_msg = _process_question(prompt)
+                elapsed = time.time() - start
+                status.update(
+                    label=f"Done in {elapsed:.1f}s",
+                    state="complete",
+                    expanded=False,
+                )
+        else:
+            with st.spinner("Analyzing query…"):
+                assistant_msg = _process_question(prompt)
 
         st.session_state.messages.append(assistant_msg)
         _display_message(assistant_msg, index=len(st.session_state.messages) - 1)
