@@ -68,11 +68,43 @@ st.markdown(
         --pharma-dark: #134e4a;
         --pharma-bg-light: #f0fdfa;
         --pharma-accent: #f59e0b;
+        --pharma-text: #0f172a;
+        --pharma-text-secondary: #64748b;
+        --pharma-text-muted: #94a3b8;
+        --pharma-border: #e2e8f0;
+        --pharma-card-bg: #f8fafc;
+        --pharma-card-hover: #f0fdfa;
     }
 
-    /* Sidebar branding */
+    /* Dark mode overrides */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --pharma-text: #e2e8f0;
+            --pharma-text-secondary: #94a3b8;
+            --pharma-text-muted: #64748b;
+            --pharma-border: #334155;
+            --pharma-card-bg: #1e293b;
+            --pharma-card-hover: #1a3a3a;
+            --pharma-bg-light: #0f2928;
+        }
+    }
+
+    /* Also detect Streamlit's dark theme (data-theme attribute) */
+    [data-testid="stAppViewContainer"][class*="dark"],
+    .stApp[data-theme="dark"],
+    [data-theme="dark"] {
+        --pharma-text: #e2e8f0;
+        --pharma-text-secondary: #94a3b8;
+        --pharma-text-muted: #64748b;
+        --pharma-border: #334155;
+        --pharma-card-bg: #1e293b;
+        --pharma-card-hover: #1a3a3a;
+        --pharma-bg-light: #0f2928;
+    }
+
+    /* Sidebar branding — adapt to dark mode */
     section[data-testid="stSidebar"] > div:first-child {
-        background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+        background: linear-gradient(180deg, var(--pharma-bg-light) 0%, transparent 100%);
     }
 
     /* Metadata pills */
@@ -84,26 +116,33 @@ st.markdown(
         margin: 2px 4px 2px 0;
         font-weight: 500;
     }
-    .pharma-badge.drug { background: #dbeafe; color: #1e40af; }
-    .pharma-badge.graph { background: #d1fae5; color: #065f46; }
-    .pharma-badge.model { background: #fef3c7; color: #92400e; }
-    .pharma-badge.error { background: #fee2e2; color: #991b1b; }
+    .pharma-badge.drug { background: #1e3a5f; color: #93c5fd; }
+    .pharma-badge.graph { background: #064e3b; color: #6ee7b7; }
+    .pharma-badge.model { background: #78350f; color: #fcd34d; }
+    .pharma-badge.error { background: #7f1d1d; color: #fca5a5; }
+
+    @media (prefers-color-scheme: light) {
+        .pharma-badge.drug { background: #dbeafe; color: #1e40af; }
+        .pharma-badge.graph { background: #d1fae5; color: #065f46; }
+        .pharma-badge.model { background: #fef3c7; color: #92400e; }
+        .pharma-badge.error { background: #fee2e2; color: #991b1b; }
+    }
 
     /* Hero section */
     .hero-container {
         padding: 1.5rem 0 1rem 0;
-        border-bottom: 2px solid #e2e8f0;
+        border-bottom: 2px solid var(--pharma-border);
         margin-bottom: 1rem;
     }
     .hero-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--pharma-text);
         margin: 0;
         line-height: 1.2;
     }
     .hero-subtitle {
-        color: #64748b;
+        color: var(--pharma-text-secondary);
         font-size: 0.95rem;
         margin-top: 0.25rem;
     }
@@ -120,50 +159,39 @@ st.markdown(
         align-items: center;
         gap: 0.4rem;
         font-size: 0.82rem;
-        color: #475569;
+        color: var(--pharma-text-secondary);
     }
     .stat-value {
         font-weight: 700;
-        color: #0d9488;
+        color: var(--pharma-primary);
     }
 
-    /* Example question cards */
-    .example-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 0.8rem 1rem;
-        margin: 0.3rem 0;
-        cursor: default;
-        transition: border-color 0.2s, background 0.2s;
+    /* Example question buttons — styled as cards */
+    div[data-testid="stButton"] > button[kind="secondary"] {
+        text-align: left !important;
+        background: var(--pharma-card-bg) !important;
+        border: 1px solid var(--pharma-border) !important;
+        border-radius: 10px !important;
+        padding: 0.8rem 1rem !important;
+        width: 100% !important;
+        transition: border-color 0.2s, background 0.2s !important;
     }
-    .example-card:hover {
-        border-color: #0d9488;
-        background: #f0fdfa;
-    }
-    .example-card .card-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #94a3b8;
-        margin-bottom: 0.2rem;
-    }
-    .example-card .card-question {
-        font-size: 0.9rem;
-        color: #1e293b;
+    div[data-testid="stButton"] > button[kind="secondary"]:hover {
+        border-color: var(--pharma-primary) !important;
+        background: var(--pharma-card-hover) !important;
     }
 
     /* Footer */
     .app-footer {
         text-align: center;
         padding: 2rem 0 1rem 0;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid var(--pharma-border);
         margin-top: 2rem;
-        color: #94a3b8;
+        color: var(--pharma-text-muted);
         font-size: 0.8rem;
     }
     .app-footer a {
-        color: #0d9488;
+        color: var(--pharma-primary);
         text-decoration: none;
         font-weight: 500;
     }
@@ -246,12 +274,13 @@ def _init_session() -> None:
 def _render_sidebar() -> None:
     """Render the sidebar with settings and drug explorer."""
     st.sidebar.markdown(
-        '<div style="text-align:center;padding:0.5rem 0;">'
-        '<span style="font-size:2.2rem;">💊</span>'
+        '<div style="padding:0.8rem 0 0.3rem 0;">'
+        '<span style="font-size:1.1rem;font-weight:700;color:var(--pharma-primary);">'
+        "PharmaGraphRAG"
+        "</span>"
         "</div>",
         unsafe_allow_html=True,
     )
-    st.sidebar.title("PharmaGraphRAG")
     st.sidebar.caption("Drug safety intelligence powered by GraphRAG")
 
     if API_URL:
@@ -768,12 +797,16 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
+    # Handle example question clicks
+    pending = st.session_state.pop("_pending_example", None)
+
     # Display chat history
     for i, msg in enumerate(st.session_state.messages):
         _display_message(msg, index=i)
 
     # Chat input
-    if prompt := st.chat_input("Ask a question about drugs…"):
+    prompt = pending or st.chat_input("Ask a question about drugs…")
+    if prompt:
         # Add user message
         user_msg = ChatMessage(role="user", content=prompt)
         st.session_state.messages.append(user_msg)
@@ -848,13 +881,13 @@ def main() -> None:
         cols = st.columns(2)
         for i, (label, question) in enumerate(examples):
             col = cols[i % 2]
-            col.markdown(
-                f'<div class="example-card">'
-                f'<div class="card-label">{label}</div>'
-                f'<div class="card-question">{question}</div>'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+            if col.button(
+                f"**{label}** — {question}",
+                key=f"example_{i}",
+                use_container_width=True,
+            ):
+                st.session_state._pending_example = question
+                st.rerun()
 
     # Footer
     st.markdown(
