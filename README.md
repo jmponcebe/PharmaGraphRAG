@@ -1,8 +1,9 @@
 # PharmaGraphRAG
 
 [![CI](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml)
+[![CD](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-167%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-172%20passing-brightgreen.svg)](#testing)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-pharmagraphrag.streamlit.app-FF4B4B.svg)](https://pharmagraphrag.streamlit.app)
@@ -229,7 +230,7 @@ In Agent Mode, the LLM autonomously decides which tools to call:
 | API | FastAPI + Pydantic v2 |
 | UI | Streamlit + streamlit-agraph (graph visualization) |
 | Containers | Docker Compose (multi-stage, non-root, healthchecks) |
-| CI/CD | GitHub Actions (lint + test matrix + Docker build) |
+| CI/CD | GitHub Actions (CI: lint + test matrix; CD: v* tags → Cloud Build → Cloud Run) |
 | Testing | pytest (172 tests, mocked services) |
 | Linting | ruff (check + format) |
 

@@ -23,8 +23,8 @@ All three development phases are finished. The system is fully operational end-t
 | Streamlit UI | Complete | `src/pharmagraphrag/ui/` |
 | Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
-| CI/CD | Complete | `.github/workflows/ci.yml` |
-| Tests | 167 passing | `tests/` |
+| CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
+| Tests | 172 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -91,8 +91,11 @@ FDA FAERS (CSV) + DailyMed (API)
 - **API**: FastAPI >= 0.115 with Pydantic v2
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
-- **CI/CD**: GitHub Actions (lint + test matrix 3.11/3.13 + Docker build with Buildx)
+- **CI/CD**: GitHub Actions (ci.yml: lint+test on push; deploy.yml: CD on v* tags via Cloud Build)
 - **Testing**: pytest (172 tests passing)
+- **CI/CD**: GitHub Actions (ci.yml: lint + test matrix 3.11/3.13; deploy.yml: v* tags → Cloud Build → Cloud Run)
+- **Cloud Build**: Google Cloud Build (cloudbuild.yaml) — downloads ChromaDB from GCS, builds Docker, deploys
+- **Object Storage**: Google Cloud Storage (gs://pharmagraphrag-data for ChromaDB snapshots)
 - **Linting/Formatting**: ruff (check + format)
 - **Logging**: loguru
 - **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
@@ -112,7 +115,8 @@ PharmaGraphRAG/
 +-- .github/
 |   +-- copilot-instructions.md    # This file
 |   +-- workflows/
-|       +-- ci.yml                 # GitHub Actions: lint + test matrix + Docker build
+|       +-- ci.yml                 # CI: lint + test matrix (3.11/3.13), reusable via workflow_call
+|       +-- deploy.yml             # CD: v* tags → Cloud Build → Cloud Run deploy
 +-- data/
 |   +-- raw/                       # Downloaded FAERS CSVs, DailyMed JSONs (gitignored)
 |   |   +-- faers/                 # {2024Q3,2024Q4}/ with $-delimited .txt files
@@ -166,8 +170,9 @@ PharmaGraphRAG/
 |   +-- test_vectorstore.py        # 35 tests (chunker + embedder + ChromaDB store)
 |   +-- test_engine.py             # 37 tests (entity extractor + retriever + query engine)
 |   +-- test_llm.py                # 14 tests (Gemini + Ollama + fallback, mocked)
-|   +-- test_api.py                # 13 tests (FastAPI endpoints, TestClient)
+|   +-- test_api.py                # 18 tests (FastAPI endpoints, TestClient, drug search, fallback)
 |   +-- test_ui.py                 # 14 tests (Streamlit components + session state)
+|   +-- test_agent.py              # 25 tests (Tools, AgentResponse model, /agent/query endpoint)
 +-- scripts/
 |   +-- load_vectorstore.py        # One-off: populate ChromaDB
 |   +-- validate_search.py         # One-off: test semantic search queries
@@ -191,6 +196,7 @@ PharmaGraphRAG/
 +-- .env.example
 +-- .gitignore
 +-- .pre-commit-config.yaml
++-- cloudbuild.yaml                # Cloud Build: GCS download → Docker build → GCR push → Cloud Run deploy
 +-- docker-compose.yml             # Neo4j + API + UI + optional Ollama
 +-- pyproject.toml
 +-- uv.lock
@@ -304,7 +310,8 @@ PharmaGraphRAG/
 ## LLM Configuration
 
 ### Gemini API
-- Model: gemini-2.5-flash (fast, free tier)
+- Model: gemini-2.5-flash (classic pipeline, fast, free tier)
+- Agent Model: gemini-2.5-flash-lite (agent mode, optimized for tool calling)
 - API key via GEMINI_API_KEY env var
 - SDK: google-genai (>= 1.64.0)
 - Temperature: 0.3, max_output_tokens: 2048
@@ -377,7 +384,21 @@ The system is deployed on a distributed free-tier architecture:
 - **Neo4j Aura**: Free tier (200K nodes, 400K rels). Data migrated via `scripts/migrate_neo4j.py`. Auto-pauses after 3 days inactivity.
 - **Gemini API**: `GEMINI_API_KEY` set as Cloud Run env var. Free tier: 15 RPM.
 
+### Deployment Pipeline (CD)
+- **Trigger**: GitHub Actions `deploy.yml` on version tags (`v*`)
+- **Flow**: `deploy.yml` reuses CI workflow for tests → authenticates GCP → runs `gcloud builds submit --config=cloudbuild.yaml --substitutions=_TAG={tag}`
+- **Cloud Build steps** (`cloudbuild.yaml`):
+  1. Download ChromaDB snapshot from `gs://pharmagraphrag-data/chroma/chroma/`
+  2. Multi-stage Docker build (`docker/Dockerfile.cloudrun`)
+  3. Push image to GCR (`gcr.io/pharmagraphrag/api:{tag}` + `latest`)
+  4. Deploy to Cloud Run (min_instances=0, max_instances=2)
+- **Service Account**: `github-cd@pharmagraphrag.iam.gserviceaccount.com` (roles: run.admin, storage.admin, iam.serviceAccountUser, cloudbuild.builds.editor, logging.viewer, viewer)
+- **GCS Bucket**: `gs://pharmagraphrag-data` (us-central1) — stores ChromaDB embeddings (99.6 MiB)
+- **Versions**: v1.0.0 (initial), v1.0.3 (current)
+
 ### Key Deployment Files
+- `cloudbuild.yaml` -- Cloud Build config: GCS download → Docker build → deploy
+- `.github/workflows/deploy.yml` -- CD workflow: v* tags → Cloud Build → Cloud Run
 - `docker/Dockerfile.cloudrun` -- Cloud Run image (CPU-only, baked ChromaDB)
 - `scripts/migrate_neo4j.py` -- Migrate data between Neo4j instances
 - `scripts/setup_demo.py` -- Load demo data into any Neo4j instance
