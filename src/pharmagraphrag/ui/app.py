@@ -91,6 +91,7 @@ def _init_session() -> None:
             "use_llm": True,
             "n_results": 5,
             "llm_provider": "gemini",
+            "agent_mode": False,
         }
 
 
@@ -116,36 +117,50 @@ def _render_sidebar() -> None:
 
     s = st.session_state.settings
 
-    s["use_graph"] = st.sidebar.checkbox(
-        "Use Knowledge Graph (Neo4j)",
-        value=s["use_graph"],
-        key="cb_graph",
+    s["agent_mode"] = st.sidebar.toggle(
+        "🤖 Agent Mode (ReAct)",
+        value=s["agent_mode"],
+        key="tg_agent",
+        help="Use a LangGraph ReAct agent that autonomously decides which tools to call.",
     )
-    s["use_vector"] = st.sidebar.checkbox(
-        "Use Vector Search (ChromaDB)",
-        value=s["use_vector"],
-        key="cb_vector",
-    )
-    s["use_llm"] = st.sidebar.checkbox(
-        "Generate answer with LLM",
-        value=s["use_llm"],
-        key="cb_llm",
-    )
-    s["n_results"] = st.sidebar.slider(
-        "Vector search results",
-        min_value=1,
-        max_value=20,
-        value=s["n_results"],
-        key="sl_nresults",
-    )
-    s["llm_provider"] = st.sidebar.selectbox(
-        "LLM Provider",
-        ["gemini", "ollama"],
-        index=0 if s["llm_provider"] == "gemini" else 1,
-        key="sb_provider",
-        disabled=bool(API_URL),
-        help="Disabled in API mode — the server chooses the provider." if API_URL else None,
-    )
+
+    if s["agent_mode"]:
+        st.sidebar.info(
+            "Agent mode: the LLM decides which tools to use "
+            "(graph queries, vector search, etc.) autonomously.",
+            icon="🤖",
+        )
+    else:
+        s["use_graph"] = st.sidebar.checkbox(
+            "Use Knowledge Graph (Neo4j)",
+            value=s["use_graph"],
+            key="cb_graph",
+        )
+        s["use_vector"] = st.sidebar.checkbox(
+            "Use Vector Search (ChromaDB)",
+            value=s["use_vector"],
+            key="cb_vector",
+        )
+        s["use_llm"] = st.sidebar.checkbox(
+            "Generate answer with LLM",
+            value=s["use_llm"],
+            key="cb_llm",
+        )
+        s["n_results"] = st.sidebar.slider(
+            "Vector search results",
+            min_value=1,
+            max_value=20,
+            value=s["n_results"],
+            key="sl_nresults",
+        )
+        s["llm_provider"] = st.sidebar.selectbox(
+            "LLM Provider",
+            ["gemini", "ollama"],
+            index=0 if s["llm_provider"] == "gemini" else 1,
+            key="sb_provider",
+            disabled=bool(API_URL),
+            help="Disabled in API mode — the server chooses the provider." if API_URL else None,
+        )
 
     # Drug explorer
     from pharmagraphrag.ui.components import (
@@ -164,7 +179,7 @@ def _render_sidebar() -> None:
 
 
 def _process_question(question: str) -> ChatMessage:
-    """Run the GraphRAG pipeline locally (direct engine imports).
+    """Run the GraphRAG pipeline or agent depending on settings.
 
     Args:
         question: User question string.
@@ -172,8 +187,15 @@ def _process_question(question: str) -> ChatMessage:
     Returns:
         ChatMessage with the assistant's response.
     """
+    agent_mode = st.session_state.settings.get("agent_mode", False)
+
     if API_URL:
+        if agent_mode:
+            return _process_question_agent_api(question)
         return _process_question_api(question)
+
+    if agent_mode:
+        return _process_question_agent_local(question)
     return _process_question_local(question)
 
 
@@ -276,6 +298,105 @@ def _process_question_api(question: str) -> ChatMessage:
         return ChatMessage(
             role="assistant",
             content=f"❌ Error calling API: {exc}",
+            error=str(exc),
+        )
+
+
+# -- Agent mode (API) -------------------------------------------------------
+
+
+def _process_question_agent_api(question: str) -> ChatMessage:
+    """Call the agent endpoint on the remote API."""
+    import requests as req_lib
+
+    base = API_URL.rstrip("/")  # type: ignore[union-attr]
+
+    try:
+        resp = req_lib.post(
+            f"{base}/agent/query",
+            json={"question": question},
+            timeout=180,
+        )
+
+        if resp.status_code != 200:
+            return ChatMessage(
+                role="assistant",
+                content=f"❌ Agent API error ({resp.status_code}): {resp.text[:300]}",
+                error=resp.text[:300],
+            )
+
+        data = resp.json()
+
+        # Format tool calls for display
+        tool_info = ""
+        tool_calls = data.get("tool_calls", [])
+        if tool_calls:
+            tool_lines = [f"🔧 **Tools used** ({len(tool_calls)}):"]
+            for tc in tool_calls:
+                args_str = ", ".join(f"{k}={v!r}" for k, v in tc.get("args", {}).items())
+                tool_lines.append(f"  - `{tc.get('tool', '')}({args_str})`")
+            tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
+
+        answer = data.get("answer", "")
+
+        return ChatMessage(
+            role="assistant",
+            content=tool_info + answer,
+            llm_provider="agent",
+            llm_model="gemini-2.5-flash",
+            error=data.get("error"),
+        )
+
+    except req_lib.exceptions.ReadTimeout:
+        return ChatMessage(
+            role="assistant",
+            content=(
+                "⏳ The agent request timed out. The API may be experiencing a cold start "
+                "(~50s). Please try again."
+            ),
+            error="Read timeout",
+        )
+    except Exception as exc:
+        logger.error("Agent API call failed: {}", exc)
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Error calling agent API: {exc}",
+            error=str(exc),
+        )
+
+
+# -- Agent mode (local) -----------------------------------------------------
+
+
+def _process_question_agent_local(question: str) -> ChatMessage:
+    """Run the LangGraph agent locally."""
+    try:
+        from pharmagraphrag.agent.graph import run_agent
+
+        result = run_agent(question)
+
+        # Format tool calls for display
+        tool_info = ""
+        if result.tool_calls:
+            tool_lines = [f"🔧 **Tools used** ({len(result.tool_calls)}):"]
+            for tc in result.tool_calls:
+                args_str = ", ".join(f"{k}={v!r}" for k, v in tc.get("args", {}).items())
+                tool_lines.append(f"  - `{tc.get('tool', '')}({args_str})`")
+            tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
+
+        return ChatMessage(
+            role="assistant",
+            content=tool_info + result.answer,
+            llm_provider="agent",
+            llm_model="gemini-2.5-flash",
+            error=result.error,
+        )
+
+    except Exception as exc:
+        logger.error("Agent local execution failed: {}", exc)
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Agent error: {exc}",
             error=str(exc),
         )
 
@@ -433,10 +554,12 @@ def main() -> None:
             st.markdown(prompt)
 
         # Process and display assistant response
+        agent_on = st.session_state.settings.get("agent_mode", False)
         if API_URL:
             import time
 
-            with st.status("Querying PharmaGraphRAG…", expanded=True) as status:
+            mode_label = "🤖 Agent Mode" if agent_on else "Querying PharmaGraphRAG"
+            with st.status(f"{mode_label}…", expanded=True) as status:
                 st.write("🔌 Connecting to API…")
                 st.caption(
                     "First query after inactivity may take ~50s (cold start)."

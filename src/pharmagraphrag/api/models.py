@@ -78,3 +78,36 @@ class HealthResponse(BaseModel):
     version: str = ""
     neo4j: str = "unknown"
     chromadb: str = "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Agent models
+# ---------------------------------------------------------------------------
+
+
+class AgentQueryRequest(BaseModel):
+    """Body for POST /agent/query."""
+
+    question: str = Field(
+        ...,
+        min_length=3,
+        max_length=2000,
+        description="Natural-language question for the ReAct agent.",
+        examples=["What are the interactions between warfarin and aspirin?"],
+    )
+
+
+class ToolCallInfo(BaseModel):
+    """Record of a single tool call made by the agent."""
+
+    tool: str = ""
+    args: dict = Field(default_factory=dict)
+
+
+class AgentQueryResponse(BaseModel):
+    """Response for POST /agent/query."""
+
+    question: str
+    answer: str = ""
+    tool_calls: list[ToolCallInfo] = Field(default_factory=list)
+    error: str | None = None

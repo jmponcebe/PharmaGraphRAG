@@ -1,9 +1,10 @@
 """FastAPI application — routes for the GraphRAG API.
 
 Endpoints:
-    POST /query     — Ask a question, get a RAG-powered answer.
+    POST /query       — Ask a question, get a RAG-powered answer.
+    POST /agent/query — Ask a question using the ReAct agent.
     GET  /drug/{name} — Get graph data for a specific drug.
-    GET  /health    — Health check.
+    GET  /health      — Health check.
 
 Usage:
     uvicorn pharmagraphrag.api.main:app --reload
@@ -16,11 +17,14 @@ from loguru import logger
 
 from pharmagraphrag import __version__
 from pharmagraphrag.api.models import (
+    AgentQueryRequest,
+    AgentQueryResponse,
     DrugInfoResponse,
     HealthResponse,
     QueryRequest,
     QueryResponse,
     SourceInfo,
+    ToolCallInfo,
 )
 
 app = FastAPI(
@@ -183,6 +187,33 @@ def get_drug(name: str) -> DrugInfoResponse:
         raise
     except Exception as exc:
         logger.error("Drug lookup failed: {}", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# POST /agent/query
+# ---------------------------------------------------------------------------
+
+
+@app.post("/agent/query", response_model=AgentQueryResponse)
+def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
+    """Process a question using the LangGraph ReAct agent.
+
+    The agent autonomously decides which tools to call (graph queries,
+    vector search, etc.) and generates a final answer.
+    """
+    from pharmagraphrag.agent.graph import run_agent
+
+    try:
+        result = run_agent(req.question)
+        return AgentQueryResponse(
+            question=req.question,
+            answer=result.answer,
+            tool_calls=[ToolCallInfo(**tc) for tc in result.tool_calls],
+            error=result.error,
+        )
+    except Exception as exc:
+        logger.error("Agent query failed: {}", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
