@@ -31,6 +31,13 @@ steps:
         -t gcr.io/pharmagraphrag/pharmagraphrag-api:latest \
         .
 
+# Push image to GCR (must happen before deploy)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/pharmagraphrag/pharmagraphrag-api:$_TAG']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/pharmagraphrag/pharmagraphrag-api:latest']
+
 # Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
