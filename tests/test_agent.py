@@ -163,7 +163,11 @@ class TestToolExecution:
     @patch("pharmagraphrag.agent.tools.queries.get_drug_interactions")
     def test_list_interactions(self, mock_ix):
         mock_ix.return_value = [
-            {"interacting_drug": "WARFARIN", "source": "DailyMed", "description": "increased bleeding risk"}
+            {
+                "interacting_drug": "WARFARIN",
+                "source": "DailyMed",
+                "description": "increased bleeding risk",
+            }
         ]
 
         from pharmagraphrag.agent.tools import list_drug_interactions

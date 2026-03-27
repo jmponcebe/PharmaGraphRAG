@@ -286,7 +286,9 @@ class TestFallbackBehavior:
             user_prompt="USR",
         )
         mock_llm.return_value = LLMResponse(
-            text="", model="gemini-2.5-flash", provider="gemini",
+            text="",
+            model="gemini-2.5-flash",
+            provider="gemini",
             error="429 RESOURCE_EXHAUSTED",
         )
 
@@ -321,7 +323,8 @@ class TestFallbackBehavior:
         )
         mock_llm.return_value = LLMResponse(
             text="Warfarin interacts with aspirin.",
-            model="gemini-2.5-flash", provider="gemini",
+            model="gemini-2.5-flash",
+            provider="gemini",
         )
 
         resp = client.post("/agent/query", json={"question": "interactions of warfarin?"})

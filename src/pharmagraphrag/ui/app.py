@@ -697,16 +697,12 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                     for i_tc, tc in enumerate(msg.agent_tool_calls):
                         tool_name = tc.get("tool", "unknown")
                         args = tc.get("args", {})
-                        args_str = ", ".join(
-                            f"{k}={v!r}" for k, v in args.items()
-                        )
+                        args_str = ", ".join(f"{k}={v!r}" for k, v in args.items())
                         st.markdown(f"**{i_tc + 1}.** `{tool_name}({args_str})`")
 
                         # Show result if available
                         if i_tc < len(msg.agent_tool_results):
-                            result_content = msg.agent_tool_results[i_tc].get(
-                                "content", ""
-                            )
+                            result_content = msg.agent_tool_results[i_tc].get("content", "")
                             if result_content:
                                 preview = result_content[:500]
                                 if len(result_content) > 500:
@@ -793,9 +789,7 @@ def main() -> None:
             mode_label = "🤖 Agent Mode" if agent_on else "Querying PharmaGraphRAG"
             with st.status(f"{mode_label}…", expanded=True) as status:
                 st.write("🔌 Connecting to API…")
-                st.caption(
-                    "First query after inactivity may take ~50s (cold start)."
-                )
+                st.caption("First query after inactivity may take ~50s (cold start).")
                 start = time.time()
                 assistant_msg = _process_question(prompt)
                 elapsed = time.time() - start
@@ -837,7 +831,10 @@ def main() -> None:
                 ("Drug interaction", "Find interactions between warfarin and aspirin"),
                 ("Adverse events", "Which drugs are associated with headache?"),
                 ("Safety profile", "Tell me about the safety profile of metformin"),
-                ("Complex query", "What adverse events does ibuprofen cause and what are its drug interactions?"),
+                (
+                    "Complex query",
+                    "What adverse events does ibuprofen cause and what are its drug interactions?",
+                ),
             ]
         else:
             examples = [

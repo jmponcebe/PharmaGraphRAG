@@ -290,7 +290,9 @@ def _agent_fallback_to_classic(question: str) -> AgentQueryResponse:
 
     return AgentQueryResponse(
         question=question,
-        answer=disclaimer + answer if answer else disclaimer + "No relevant data found for this query.",
+        answer=disclaimer + answer
+        if answer
+        else disclaimer + "No relevant data found for this query.",
         tool_calls=[],
         tool_results=[],
         graph_data=graph_data,
