@@ -543,18 +543,23 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
             # Sources & graph visualisation (in tabs)
             has_sources = msg.sources_graph or msg.sources_vector
             if has_sources:
-                from pharmagraphrag.ui.components import (
-                    render_graph,
-                    render_sources,
-                )
-
                 tab_src, tab_graph = st.tabs(["📄 Sources", "🕸️ Graph"])
 
                 with tab_src:
-                    render_sources(msg.sources_graph, msg.sources_vector)
+                    try:
+                        from pharmagraphrag.ui.components import render_sources
+
+                        render_sources(msg.sources_graph, msg.sources_vector)
+                    except Exception as e:
+                        st.error(f"Error rendering sources: {e}")
 
                 with tab_graph:
-                    render_graph(msg.sources_graph, key_suffix=str(index))
+                    try:
+                        from pharmagraphrag.ui.components import render_graph
+
+                        render_graph(msg.sources_graph, key_suffix=str(index))
+                    except Exception as e:
+                        st.error(f"Error rendering graph: {e}")
 
 
 # ---------------------------------------------------------------------------
