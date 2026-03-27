@@ -183,6 +183,36 @@ def get_adverse_event_drugs(event_name: str, limit: int = 20) -> list[dict]:
         return [dict(record) for record in result]
 
 
+def search_adverse_events(query: str, limit: int = 10) -> list[dict]:
+    """Search for adverse events by partial name match.
+
+    Useful when the user provides a colloquial term (e.g. "liver damage")
+    and we need to find the MedDRA-standard names in the graph.
+
+    Args:
+        query: Search query (partial name, e.g. "LIVER", "CARDIAC").
+        limit: Maximum results.
+
+    Returns:
+        List of dicts with event name and total report count.
+    """
+    driver = _get_driver()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[r:CAUSES]->(ae:AdverseEvent)
+            WHERE toUpper(ae.name) CONTAINS toUpper($search_term)
+            WITH ae.name AS name, sum(r.report_count) AS total_reports
+            RETURN name, total_reports
+            ORDER BY total_reports DESC
+            LIMIT $limit
+            """,
+            search_term=query,
+            limit=limit,
+        )
+        return [dict(record) for record in result]
+
+
 def search_drugs(query: str, limit: int = 10) -> list[str]:
     """Search for drugs by partial name match.
 

@@ -23,13 +23,20 @@ FDA FAERS adverse event reports and DailyMed drug labels.
 
 Your tools:
 - search_drug_info: get full drug profile from the knowledge graph
-- find_drugs_for_adverse_event: find drugs causing a specific side effect
+- find_drugs_for_adverse_event: find drugs causing a specific side effect (uses MedDRA terms)
+- search_adverse_events: search for adverse event names by keyword (use when unsure of exact MedDRA term)
 - search_drug_labels: semantic search over drug label text
 - list_drug_interactions: get drug-drug interactions
 - search_drugs_by_name: fuzzy search for drug names
 
 Guidelines:
 - Use one or more tools to gather relevant information before answering.
+- Adverse events in the database use MedDRA medical terminology (e.g.
+  "HEPATOTOXICITY" not "liver damage", "PYREXIA" not "fever"). When the user
+  uses colloquial terms, use search_adverse_events first to find the correct
+  MedDRA name, then use find_drugs_for_adverse_event with the exact name.
+- Similarly, drug names should be searched with search_drugs_by_name when unsure
+  of the exact spelling or standardized name.
 - Cite specific drugs, adverse events, and report counts from the tool results.
 - If tool results are insufficient, say so explicitly.
 - Be precise with medical terminology.
@@ -89,6 +96,7 @@ def _get_agent():
 
 def _collect_structured_data(
     tool_calls: list[dict[str, Any]],
+    tool_results: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Re-fetch structured data from services based on which tools were called.
 
@@ -131,6 +139,27 @@ def _collect_structured_data(
                     vector_data.extend(results)
                 except Exception:
                     pass
+
+    # Also extract drug names from find_drugs_for_adverse_event results
+    # by matching tool_results to tool_calls
+    for i, tc in enumerate(tool_calls):
+        if tc.get("tool") == "find_drugs_for_adverse_event" and i < len(tool_results):
+            content = tool_results[i].get("content", "")
+            # Extract drug names from "  - DRUG_NAME: NNN reports" lines
+            for line in content.split("\n"):
+                line = line.strip()
+                if line.startswith("- ") and ": " in line and "reports" in line:
+                    drug = line.split("- ", 1)[1].split(":")[0].strip().upper()
+                    if drug and drug not in seen_drugs:
+                        try:
+                            ctx = queries.get_drug_full_context(drug)
+                            if ctx and ctx.get("drug_info"):
+                                graph_data[drug] = ctx
+                                seen_drugs.add(drug)
+                        except Exception:
+                            pass
+                        if len(seen_drugs) >= 5:
+                            break
 
     return graph_data, vector_data
 
@@ -191,7 +220,7 @@ def run_agent(question: str) -> AgentResponse:
         )
 
         # Collect structured data for UI visualization
-        graph_data, vector_data = _collect_structured_data(tool_calls)
+        graph_data, vector_data = _collect_structured_data(tool_calls, tool_results)
 
         return AgentResponse(
             answer=answer,

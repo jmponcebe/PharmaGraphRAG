@@ -37,12 +37,26 @@ def find_drugs_for_adverse_event(event_name: str, limit: int = 15) -> str:
     Searches the FAERS knowledge graph for drugs reported to cause
     a given adverse event, ranked by report count.
 
+    IMPORTANT: Adverse events use MedDRA terminology (e.g. "HEPATOTOXICITY"
+    not "liver damage", "RHABDOMYOLYSIS" not "muscle breakdown"). If you're
+    unsure of the exact MedDRA term, use search_adverse_events first to find
+    matching event names.
+
     Args:
-        event_name: Adverse event name (e.g. "HEPATOTOXICITY", "NAUSEA").
+        event_name: Adverse event name in MedDRA terminology (e.g. "HEPATOTOXICITY", "NAUSEA").
         limit: Max number of drugs to return (default 15).
     """
     results = queries.get_adverse_event_drugs(event_name.upper(), limit=limit)
     if not results:
+        # Try substring search as fallback
+        similar = queries.search_adverse_events(event_name.upper(), limit=5)
+        if similar:
+            suggestions = ", ".join(e["name"] for e in similar)
+            return (
+                f"No exact match for '{event_name}'. "
+                f"Similar adverse events found: {suggestions}. "
+                f"Try searching with one of these exact names."
+            )
         return f"No drugs found for adverse event '{event_name}'."
     lines = [f"Drugs associated with {event_name.upper()}:"]
     for r in results:
@@ -118,6 +132,27 @@ def search_drugs_by_name(query: str, limit: int = 10) -> str:
     return "Matching drugs: " + ", ".join(results)
 
 
+@tool
+def search_adverse_events(query: str, limit: int = 10) -> str:
+    """Search for adverse event names matching a partial query.
+
+    Use this to find the correct MedDRA terminology for an adverse event.
+    For example, searching "LIVER" returns events like "HEPATOTOXICITY",
+    "LIVER INJURY", "LIVER DISORDER", etc.
+
+    Args:
+        query: Partial event name to search for (e.g. "LIVER", "CARDIAC", "RENAL").
+        limit: Max results (default 10).
+    """
+    results = queries.search_adverse_events(query.upper(), limit=limit)
+    if not results:
+        return f"No adverse events found matching '{query}'."
+    lines = [f"Adverse events matching '{query}':"]
+    for r in results:
+        lines.append(f"  - {r['name']} ({r['total_reports']} total reports)")
+    return "\n".join(lines)
+
+
 # All tools for the agent
 ALL_TOOLS = [
     search_drug_info,
@@ -125,4 +160,5 @@ ALL_TOOLS = [
     search_drug_labels,
     list_drug_interactions,
     search_drugs_by_name,
+    search_adverse_events,
 ]

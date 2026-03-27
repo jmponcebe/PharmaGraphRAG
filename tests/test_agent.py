@@ -26,7 +26,7 @@ class TestToolDefinitions:
     """Verify tools are correctly defined for the agent."""
 
     def test_all_tools_count(self):
-        assert len(ALL_TOOLS) == 5
+        assert len(ALL_TOOLS) == 6
 
     def test_tools_have_names(self):
         names = {t.name for t in ALL_TOOLS}
@@ -35,6 +35,7 @@ class TestToolDefinitions:
         assert "search_drug_labels" in names
         assert "list_drug_interactions" in names
         assert "search_drugs_by_name" in names
+        assert "search_adverse_events" in names
 
     def test_tools_have_descriptions(self):
         for tool in ALL_TOOLS:
@@ -86,14 +87,54 @@ class TestToolExecution:
         assert "ASPIRIN" in result
         assert "100" in result
 
+    @patch("pharmagraphrag.agent.tools.queries.search_adverse_events")
     @patch("pharmagraphrag.agent.tools.queries.get_adverse_event_drugs")
-    def test_find_drugs_for_event_empty(self, mock_ae):
+    def test_find_drugs_for_event_empty_no_similar(self, mock_ae, mock_search):
         mock_ae.return_value = []
+        mock_search.return_value = []
 
         from pharmagraphrag.agent.tools import find_drugs_for_adverse_event
 
         result = find_drugs_for_adverse_event.invoke({"event_name": "UNKNOWN"})
         assert "No drugs found" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.search_adverse_events")
+    @patch("pharmagraphrag.agent.tools.queries.get_adverse_event_drugs")
+    def test_find_drugs_for_event_suggests_similar(self, mock_ae, mock_search):
+        mock_ae.return_value = []
+        mock_search.return_value = [
+            {"name": "HEPATOTOXICITY", "total_reports": 500},
+            {"name": "LIVER INJURY", "total_reports": 300},
+        ]
+
+        from pharmagraphrag.agent.tools import find_drugs_for_adverse_event
+
+        result = find_drugs_for_adverse_event.invoke({"event_name": "LIVER DAMAGE"})
+        assert "No exact match" in result
+        assert "HEPATOTOXICITY" in result
+        assert "LIVER INJURY" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.search_adverse_events")
+    def test_search_adverse_events_found(self, mock_search):
+        mock_search.return_value = [
+            {"name": "HEPATOTOXICITY", "total_reports": 500},
+            {"name": "LIVER DISORDER", "total_reports": 200},
+        ]
+
+        from pharmagraphrag.agent.tools import search_adverse_events
+
+        result = search_adverse_events.invoke({"query": "LIVER"})
+        assert "HEPATOTOXICITY" in result
+        assert "500" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.search_adverse_events")
+    def test_search_adverse_events_empty(self, mock_search):
+        mock_search.return_value = []
+
+        from pharmagraphrag.agent.tools import search_adverse_events
+
+        result = search_adverse_events.invoke({"query": "XYZNOTFOUND"})
+        assert "No adverse events found" in result
 
     @patch("pharmagraphrag.agent.tools.store.search")
     @patch("pharmagraphrag.agent.tools.store.format_vector_context")
