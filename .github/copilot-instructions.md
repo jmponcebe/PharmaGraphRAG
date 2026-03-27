@@ -75,7 +75,8 @@ FDA FAERS (CSV) + DailyMed (API)
 3. **Tool execution**: 5 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`. Each wraps existing graph/vector services.
 4. **Iterative reasoning**: the agent can call multiple tools in sequence, refining its understanding.
 5. **Final answer**: the agent synthesizes all tool results into a coherent response.
-6. **Response**: returns `AgentQueryResponse` with answer, tool call history, and timing.
+6. **Structured data collection** (`_collect_structured_data`): after agent execution, re-fetches structured graph/vector data based on which tools were called (same Neo4j/ChromaDB connections, no extra HTTP calls).
+7. **Response**: returns `AgentQueryResponse` with answer, tool calls, tool results, `graph_data` (structured Neo4j context per drug), and `vector_data` (ChromaDB search results). UI renders Sources + Graph tabs identically to classic mode.
 
 ## Tech Stack
 - **Language**: Python 3.13 (runtime), compatible with 3.11+
