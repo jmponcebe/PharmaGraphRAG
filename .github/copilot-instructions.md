@@ -92,7 +92,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (lint + test matrix 3.11/3.13 + Docker build with Buildx)
-- **Testing**: pytest (170 tests passing)
+- **Testing**: pytest (172 tests passing)
 - **Linting/Formatting**: ruff (check + format)
 - **Logging**: loguru
 - **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
@@ -267,7 +267,7 @@ PharmaGraphRAG/
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 
-### Testing (170 tests)
+### Testing (172 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -283,10 +283,10 @@ PharmaGraphRAG/
 | test_vectorstore.py | 35 | Chunking, embeddings, ChromaDB CRUD |
 | test_engine.py | 37 | Entity extraction, retrieval, prompt assembly |
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
-| test_api.py | 16 | FastAPI endpoints, TestClient, drug search |
+| test_api.py | 18 | FastAPI endpoints, TestClient, drug search, fallback |
 | test_ui.py | 14 | Streamlit components, session state |
 | test_agent.py | 25 | Tools, AgentResponse model, /agent/query endpoint |
-| **Total** | **170** | |
+| **Total** | **172** | |
 
 ## Key Design Decisions
 
@@ -317,7 +317,12 @@ PharmaGraphRAG/
 ### Fallback Chain
 1. Try configured provider (gemini or ollama)
 2. If Gemini fails, automatically try Ollama
-3. If both fail, return error in LLMResponse (ok=False)
+3. If both fail and context available, return graph/vector data as formatted answer (provider="fallback")
+4. If no context available, return error in LLMResponse (ok=False)
+
+**Agent fallback**: If agent hits rate limit, auto-falls back to classic pipeline → tries LLM (Flash, separate quota) → if LLM also fails → returns raw graph/vector context.
+
+**Response cache**: Agent responses cached in-memory (max 50 entries, LRU) to avoid wasting RPD on repeated questions.
 
 ### System Prompt (actual)
 ```
