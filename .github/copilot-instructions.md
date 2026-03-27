@@ -72,7 +72,7 @@ FDA FAERS (CSV) + DailyMed (API)
 #### Agent Mode (`POST /agent/query`)
 1. **User question** arrives at the LangGraph ReAct agent (`agent/graph.py`).
 2. **Tool selection**: the LLM (Gemini 2.5 Flash via `langchain-google-genai`) autonomously decides which tools to call based on the question.
-3. **Tool execution**: 5 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`. Each wraps existing graph/vector services.
+3. **Tool execution**: 6 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`, `search_adverse_events`. Each wraps existing graph/vector services. `find_drugs_for_adverse_event` includes fuzzy fallback: if exact MedDRA term not found, suggests similar events via substring search.
 4. **Iterative reasoning**: the agent can call multiple tools in sequence, refining its understanding.
 5. **Final answer**: the agent synthesizes all tool results into a coherent response.
 6. **Structured data collection** (`_collect_structured_data`): after agent execution, re-fetches structured graph/vector data based on which tools were called (same Neo4j/ChromaDB connections, no extra HTTP calls).
@@ -92,7 +92,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (lint + test matrix 3.11/3.13 + Docker build with Buildx)
-- **Testing**: pytest (167 tests passing)
+- **Testing**: pytest (170 tests passing)
 - **Linting/Formatting**: ruff (check + format)
 - **Logging**: loguru
 - **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
@@ -267,7 +267,7 @@ PharmaGraphRAG/
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 
-### Testing (167 tests)
+### Testing (170 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -285,8 +285,8 @@ PharmaGraphRAG/
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
 | test_api.py | 16 | FastAPI endpoints, TestClient, drug search |
 | test_ui.py | 14 | Streamlit components, session state |
-| test_agent.py | 22 | Tools, AgentResponse model, /agent/query endpoint |
-| **Total** | **167** | |
+| test_agent.py | 25 | Tools, AgentResponse model, /agent/query endpoint |
+| **Total** | **170** | |
 
 ## Key Design Decisions
 

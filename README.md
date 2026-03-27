@@ -67,9 +67,9 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 ### Key Highlights
 
 - **Dual retrieval**: structured graph queries (Neo4j) + semantic vector search (ChromaDB) merged into a single LLM prompt
-- **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (graph search, vector search, drug lookup) based on the question
+- **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (graph search, vector search, drug lookup, adverse event search) based on the question
 - **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
-- **167 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
+- **170 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
 - **One-click Codespaces**: try it instantly from your browser
 
@@ -78,7 +78,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 > *"What are the side effects of ibuprofen?"* · *"Does metformin interact with other drugs?"* · *"Compare the safety profiles of aspirin and clopidogrel"* · *"What drugs cause liver damage?"*
 
 <details>
-<summary><strong>Component Status</strong> — all modules complete, 167 tests passing</summary>
+<summary><strong>Component Status</strong> — all modules complete, 170 tests passing</summary>
 
 | Component | Status | Details |
 |---|---|---|
@@ -91,7 +91,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | Chat UI | ✅ Complete | Streamlit: chat, graph visualization, sources panel, drug explorer |
 | Docker Compose | ✅ Complete | Neo4j + API + UI + Ollama (optional profile) |
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
-| Agent Mode | ✅ Complete | LangGraph ReAct agent with 5 tools, toggle in UI, `/agent/query` endpoint |
+| Agent Mode | ✅ Complete | LangGraph ReAct agent with 6 tools, toggle in UI, `/agent/query` endpoint |
 | Tests | ✅ 167 passing | Data (27) + vectors (35) + engine (37) + LLM (14) + API (16) + UI (14) + agent (22) |
 
 </details>
@@ -220,7 +220,7 @@ graph TB
 | UI | Streamlit + streamlit-agraph (graph visualization) |
 | Containers | Docker Compose (multi-stage, non-root, healthchecks) |
 | CI/CD | GitHub Actions (lint + test matrix + Docker build) |
-| Testing | pytest (167 tests, mocked services) |
+| Testing | pytest (170 tests, mocked services) |
 | Linting | ruff (check + format) |
 
 ## Data Sources
@@ -385,7 +385,7 @@ gcloud run deploy pharmagraphrag-api --image gcr.io/<project>/pharmagraphrag-api
 ### Testing
 
 ```bash
-uv run pytest               # Run all 167 tests
+uv run pytest               # Run all 170 tests
 uv run pytest -v             # Verbose output
 uv run pytest tests/test_engine.py  # Specific module
 ```
