@@ -305,6 +305,46 @@ def _process_question_api(question: str) -> ChatMessage:
 # -- Agent mode (API) -------------------------------------------------------
 
 
+def _extract_drugs_from_tool_calls(tool_calls: list[dict[str, Any]]) -> list[str]:
+    """Extract unique drug names from agent tool call args."""
+    drugs: list[str] = []
+    for tc in tool_calls:
+        args = tc.get("args", {})
+        for key in ("drug_name", "query"):
+            val = args.get(key, "")
+            if val and key == "drug_name" and val.upper() not in drugs:
+                drugs.append(val.upper())
+    return drugs
+
+
+def _fetch_graph_data_for_drugs(
+    drugs: list[str], base_url: str
+) -> dict[str, Any]:
+    """Fetch graph data for each drug from the API."""
+    import requests as req_lib
+
+    graph_raw: dict[str, Any] = {}
+    for drug in drugs[:5]:  # limit to avoid too many requests
+        try:
+            dr = req_lib.get(f"{base_url}/drug/{drug}", timeout=60)
+            if dr.status_code == 200:
+                dd = dr.json()
+                graph_raw[drug] = {
+                    "drug_info": {
+                        "name": dd.get("name", drug),
+                        "brand_names": dd.get("brand_names", []),
+                        "route": dd.get("route", ""),
+                    },
+                    "adverse_events": dd.get("adverse_events", []),
+                    "interactions": dd.get("interactions", []),
+                    "outcomes": dd.get("outcomes", []),
+                    "categories": dd.get("categories", []),
+                }
+        except Exception:
+            pass
+    return graph_raw
+
+
 def _process_question_agent_api(question: str) -> ChatMessage:
     """Call the agent endpoint on the remote API."""
     import requests as req_lib
@@ -339,9 +379,16 @@ def _process_question_agent_api(question: str) -> ChatMessage:
 
         answer = data.get("answer", "")
 
+        # Extract drug names from tool calls to fetch graph data
+        drugs = _extract_drugs_from_tool_calls(tool_calls)
+        graph_raw = _fetch_graph_data_for_drugs(drugs, base)
+
         return ChatMessage(
             role="assistant",
             content=tool_info + answer,
+            sources_graph=graph_raw,
+            drugs_extracted=drugs,
+            drugs_found=[d for d in drugs if d in graph_raw],
             llm_provider="agent",
             llm_model="gemini-2.5-flash",
             error=data.get("error"),
@@ -384,9 +431,25 @@ def _process_question_agent_local(question: str) -> ChatMessage:
                 tool_lines.append(f"  - `{tc.get('tool', '')}({args_str})`")
             tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
 
+        # Fetch graph data for visualization
+        drugs = _extract_drugs_from_tool_calls(result.tool_calls)
+        graph_raw: dict[str, Any] = {}
+        try:
+            from pharmagraphrag.graph import queries
+
+            for drug in drugs[:5]:
+                ctx = queries.get_drug_full_context(drug)
+                if ctx and ctx.get("drug_info"):
+                    graph_raw[drug] = ctx
+        except Exception:
+            pass
+
         return ChatMessage(
             role="assistant",
             content=tool_info + result.answer,
+            sources_graph=graph_raw,
+            drugs_extracted=drugs,
+            drugs_found=[d for d in drugs if d in graph_raw],
             llm_provider="agent",
             llm_model="gemini-2.5-flash",
             error=result.error,
