@@ -1,0 +1,72 @@
+# CD Pipeline — Build & Deploy to Google Cloud Run
+# Triggers on version tags (v*) after CI passes
+
+name: CD - Deploy to Cloud Run
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PROJECT_ID: pharmagraphrag
+  REGION: us-central1
+  SERVICE: pharmagraphrag-api
+  IMAGE: gcr.io/pharmagraphrag/pharmagraphrag-api
+
+jobs:
+  # Run tests first to ensure quality
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Prepare build context
+        run: cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/Dockerfile.cloudrun \
+            -t ${{ env.IMAGE }}:${{ github.ref_name }} \
+            -t ${{ env.IMAGE }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.ref_name }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          image: ${{ env.IMAGE }}:${{ github.ref_name }}
+          region: ${{ env.REGION }}
+
+      - name: Show deployment URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "🚀 Deployed to: $URL"
+          echo "📦 Image tag: ${{ github.ref_name }}"
