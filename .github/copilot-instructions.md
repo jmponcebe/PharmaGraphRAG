@@ -21,9 +21,10 @@ All three development phases are finished. The system is fully operational end-t
 | LLM Integration | Complete | `src/pharmagraphrag/llm/` |
 | REST API | Complete | `src/pharmagraphrag/api/` |
 | Streamlit UI | Complete | `src/pharmagraphrag/ui/` |
+| Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` |
-| Tests | 145 passing | `tests/` |
+| Tests | 167 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -58,6 +59,8 @@ FDA FAERS (CSV) + DailyMed (API)
 ```
 
 ### Query Flow (end-to-end)
+
+#### Classic Mode (`POST /query`)
 1. **Entity Extraction** (`engine/entity_extractor.py`): exact substring match + fuzzy matching (rapidfuzz, threshold=80) against known drug names from Neo4j or disk cache.
 2. **Graph Retrieval** (`engine/retriever.py` -> `graph/queries.py`): for each drug, fetch info, adverse events (top-N), interactions, outcomes from Neo4j.
 3. **Vector Retrieval** (`engine/retriever.py` -> `vectorstore/store.py`): semantic search in ChromaDB filtered by extracted drug names.
@@ -65,6 +68,14 @@ FDA FAERS (CSV) + DailyMed (API)
 5. **LLM Generation** (`llm/client.py`): call Gemini API (primary) or Ollama (fallback). Auto-fallback on error.
 6. **API Response** (`api/main.py`): return answer + sources via FastAPI `POST /query`.
 7. **UI Display** (`ui/app.py` + `ui/components.py`): Streamlit chat with graph visualization and source evidence.
+
+#### Agent Mode (`POST /agent/query`)
+1. **User question** arrives at the LangGraph ReAct agent (`agent/graph.py`).
+2. **Tool selection**: the LLM (Gemini 2.5 Flash via `langchain-google-genai`) autonomously decides which tools to call based on the question.
+3. **Tool execution**: 5 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`. Each wraps existing graph/vector services.
+4. **Iterative reasoning**: the agent can call multiple tools in sequence, refining its understanding.
+5. **Final answer**: the agent synthesizes all tool results into a coherent response.
+6. **Response**: returns `AgentQueryResponse` with answer, tool call history, and timing.
 
 ## Tech Stack
 - **Language**: Python 3.13 (runtime), compatible with 3.11+
@@ -74,12 +85,13 @@ FDA FAERS (CSV) + DailyMed (API)
 - **Embeddings**: sentence-transformers (all-MiniLM-L6-v2, 384 dimensions)
 - **LLM Primary**: Google Gemini API (free tier, `google-genai` SDK >= 1.64.0)
 - **LLM Backup**: Ollama + Llama 3 / Mistral (local, `ollama` SDK >= 0.4)
+- **Agent Framework**: LangGraph + LangChain (ReAct agent with tool calling)
 - **Entity Matching**: rapidfuzz >= 3.14.3 (fuzzy string matching)
 - **API**: FastAPI >= 0.115 with Pydantic v2
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (lint + test matrix 3.11/3.13 + Docker build with Buildx)
-- **Testing**: pytest (145 tests passing)
+- **Testing**: pytest (167 tests passing)
 - **Linting/Formatting**: ruff (check + format)
 - **Logging**: loguru
 - **Data formats**: Parquet (processed FAERS), JSON (DailyMed labels)
@@ -133,10 +145,14 @@ PharmaGraphRAG/
 |   +-- llm/
 |   |   +-- __init__.py
 |   |   +-- client.py              # Unified LLM client (Gemini + Ollama + fallback)
+|   +-- agent/
+|   |   +-- __init__.py
+|   |   +-- tools.py               # LangChain tools wrapping graph/vector services
+|   |   +-- graph.py               # LangGraph ReAct agent (create_react_agent + Gemini)
 |   +-- api/
 |   |   +-- __init__.py
-|   |   +-- main.py                # FastAPI app: POST /query, GET /drug/{name}, GET /health
-|   |   +-- models.py              # Pydantic v2 request/response schemas
+|   |   +-- main.py                # FastAPI app: POST /query, POST /agent/query, GET /drug/{name}, GET /health
+|   |   +-- models.py              # Pydantic v2 request/response schemas (incl. AgentQueryRequest/Response)
 |   +-- ui/
 |       +-- __init__.py
 |       +-- app.py                 # Streamlit chat interface
@@ -231,7 +247,8 @@ PharmaGraphRAG/
 - **12 label sections**: drug_interactions, adverse_reactions, warnings_and_cautions, contraindications, boxed_warning, indications_and_usage, dosage_and_administration, clinical_pharmacology, mechanism_of_action, pharmacodynamics, overdosage, warnings
 
 ### API Endpoints
-- `POST /query` -- Full GraphRAG pipeline: question -> answer + sources
+- `POST /query` -- Classic GraphRAG pipeline: question -> answer + sources
+- `POST /agent/query` -- Agent Mode: LangGraph ReAct agent autonomously selects tools
 - `GET /drug/{name}` -- Graph lookup: drug info, adverse events, interactions
 - `GET /drugs/search?q=` -- Search drugs by name prefix (autocomplete)
 - `GET /health` -- Service health: Neo4j + ChromaDB status
@@ -249,7 +266,7 @@ PharmaGraphRAG/
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 
-### Testing (145 tests)
+### Testing (167 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -267,7 +284,8 @@ PharmaGraphRAG/
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
 | test_api.py | 16 | FastAPI endpoints, TestClient, drug search |
 | test_ui.py | 14 | Streamlit components, session state |
-| **Total** | **145** | |
+| test_agent.py | 22 | Tools, AgentResponse model, /agent/query endpoint |
+| **Total** | **167** | |
 
 ## Key Design Decisions
 
@@ -279,6 +297,8 @@ PharmaGraphRAG/
 6. **sentence-transformers over OpenAI embeddings**: Free, local, fast. all-MiniLM-L6-v2 is the standard baseline.
 7. **rapidfuzz for entity extraction**: Fuzzy matching (threshold=80) catches misspellings and partial drug names without requiring an LLM call.
 8. **Synchronous FastAPI**: Neo4j Python driver is synchronous; async endpoints would add complexity without benefit.
+9. **LangGraph ReAct over manual StateGraph**: `create_react_agent` implements the ReAct loop natively. Tools wrap existing services (graph queries, vector search) — zero duplication. Agent Mode is opt-in (toggle in UI, separate endpoint).
+10. **Singleton Neo4j driver**: Single driver instance with connection pool instead of driver-per-query. Critical for Neo4j Aura where each new connection has high latency.
 
 ## LLM Configuration
 
@@ -347,7 +367,7 @@ The system is deployed on a distributed free-tier architecture:
 
 ### Deployment Architecture
 - **Streamlit Cloud**: reads `API_URL` from `st.secrets`, switches to HTTP mode (calls Cloud Run API instead of local imports). Uses `uv sync` from `uv.lock`. Main file: `src/pharmagraphrag/ui/app.py`.
-- **Cloud Run**: Docker image with CPU-only PyTorch + baked-in ChromaDB. `Dockerfile.cloudrun` uses multi-stage build. Min instances=0 (scale to zero), max=2. Cold start ~15s.
+- **Cloud Run**: Docker image with CPU-only PyTorch + baked-in ChromaDB + pre-cached embedding model. `Dockerfile.cloudrun` uses multi-stage build. Min instances=0 (scale to zero), max=2. Cold start ~50s, warm ~4.5s.
 - **Neo4j Aura**: Free tier (200K nodes, 400K rels). Data migrated via `scripts/migrate_neo4j.py`. Auto-pauses after 3 days inactivity.
 - **Gemini API**: `GEMINI_API_KEY` set as Cloud Run env var. Free tier: 15 RPM.
 
