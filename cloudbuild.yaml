@@ -16,5 +16,14 @@ steps:
     - |
       cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
       docker build -f docker/Dockerfile.cloudrun -t gcr.io/pharmagraphrag/pharmagraphrag-api:latest .
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'pharmagraphrag-api'
+    - '--image=gcr.io/pharmagraphrag/pharmagraphrag-api:latest'
+    - '--region=us-central1'
+    - '--platform=managed'
 images: ['gcr.io/pharmagraphrag/pharmagraphrag-api:latest']
 timeout: '1800s'
