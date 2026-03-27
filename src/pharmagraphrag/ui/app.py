@@ -49,9 +49,150 @@ API_URL: str | None = _get_api_url()
 
 st.set_page_config(
     page_title="PharmaGraphRAG",
-    page_icon="https://img.icons8.com/color/96/pill.png",
+    page_icon="💊",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+# ---------------------------------------------------------------------------
+# Custom CSS — pharma-themed styling
+# ---------------------------------------------------------------------------
+
+st.markdown(
+    """
+    <style>
+    /* Brand colors */
+    :root {
+        --pharma-primary: #0d9488;
+        --pharma-primary-light: #14b8a6;
+        --pharma-dark: #134e4a;
+        --pharma-bg-light: #f0fdfa;
+        --pharma-accent: #f59e0b;
+    }
+
+    /* Sidebar branding */
+    section[data-testid="stSidebar"] > div:first-child {
+        background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+    }
+
+    /* Metadata pills */
+    .pharma-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.78em;
+        margin: 2px 4px 2px 0;
+        font-weight: 500;
+    }
+    .pharma-badge.drug { background: #dbeafe; color: #1e40af; }
+    .pharma-badge.graph { background: #d1fae5; color: #065f46; }
+    .pharma-badge.model { background: #fef3c7; color: #92400e; }
+    .pharma-badge.error { background: #fee2e2; color: #991b1b; }
+
+    /* Hero section */
+    .hero-container {
+        padding: 1.5rem 0 1rem 0;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+    .hero-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .hero-subtitle {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        color: #475569;
+    }
+    .stat-value {
+        font-weight: 700;
+        color: #0d9488;
+    }
+
+    /* Example question cards */
+    .example-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+        margin: 0.3rem 0;
+        cursor: default;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .example-card:hover {
+        border-color: #0d9488;
+        background: #f0fdfa;
+    }
+    .example-card .card-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin-bottom: 0.2rem;
+    }
+    .example-card .card-question {
+        font-size: 0.9rem;
+        color: #1e293b;
+    }
+
+    /* Footer */
+    .app-footer {
+        text-align: center;
+        padding: 2rem 0 1rem 0;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 2rem;
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+    .app-footer a {
+        color: #0d9488;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    /* Agent reasoning expander */
+    div[data-testid="stExpander"] details summary {
+        font-weight: 500;
+    }
+
+    /* Mode indicator sidebar */
+    .mode-indicator {
+        text-align: center;
+        padding: 0.4rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0.5rem 0;
+    }
+    .mode-indicator.agent {
+        background: linear-gradient(135deg, #dbeafe, #ede9fe);
+        color: #4338ca;
+    }
+    .mode-indicator.classic {
+        background: linear-gradient(135deg, #d1fae5, #cffafe);
+        color: #065f46;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -104,21 +245,29 @@ def _init_session() -> None:
 
 def _render_sidebar() -> None:
     """Render the sidebar with settings and drug explorer."""
-    st.sidebar.image(
-        "https://img.icons8.com/color/96/pill.png",
-        width=64,
+    st.sidebar.markdown(
+        '<div style="text-align:center;padding:0.5rem 0;">'
+        '<span style="font-size:2.2rem;">💊</span>'
+        "</div>",
+        unsafe_allow_html=True,
     )
     st.sidebar.title("PharmaGraphRAG")
-    st.sidebar.caption("GraphRAG for drug interactions & adverse events")
+    st.sidebar.caption("Drug safety intelligence powered by GraphRAG")
 
     if API_URL:
-        st.sidebar.success(f"🌐 API mode: {API_URL}", icon="🔗")
+        st.sidebar.markdown(
+            '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;'
+            'padding:0.4rem 0.7rem;font-size:0.8rem;color:#166534;margin:0.5rem 0;">'
+            "🔗 Connected to cloud API</div>",
+            unsafe_allow_html=True,
+        )
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("⚙️ Settings")
 
+    # Query mode selector — prominent toggle
     s = st.session_state.settings
 
+    st.sidebar.markdown("##### Query Mode")
     s["agent_mode"] = st.sidebar.toggle(
         "🤖 Agent Mode (ReAct)",
         value=s["agent_mode"],
@@ -126,43 +275,45 @@ def _render_sidebar() -> None:
         help="Use a LangGraph ReAct agent that autonomously decides which tools to call.",
     )
 
-    if s["agent_mode"]:
-        st.sidebar.info(
-            "Agent mode: the LLM decides which tools to use "
-            "(graph queries, vector search, etc.) autonomously.",
-            icon="🤖",
-        )
-    else:
-        s["use_graph"] = st.sidebar.checkbox(
-            "Use Knowledge Graph (Neo4j)",
-            value=s["use_graph"],
-            key="cb_graph",
-        )
-        s["use_vector"] = st.sidebar.checkbox(
-            "Use Vector Search (ChromaDB)",
-            value=s["use_vector"],
-            key="cb_vector",
-        )
-        s["use_llm"] = st.sidebar.checkbox(
-            "Generate answer with LLM",
-            value=s["use_llm"],
-            key="cb_llm",
-        )
-        s["n_results"] = st.sidebar.slider(
-            "Vector search results",
-            min_value=1,
-            max_value=20,
-            value=s["n_results"],
-            key="sl_nresults",
-        )
-        s["llm_provider"] = st.sidebar.selectbox(
-            "LLM Provider",
-            ["gemini", "ollama"],
-            index=0 if s["llm_provider"] == "gemini" else 1,
-            key="sb_provider",
-            disabled=bool(API_URL),
-            help="Disabled in API mode — the server chooses the provider." if API_URL else None,
-        )
+    mode_class = "agent" if s["agent_mode"] else "classic"
+    mode_text = "🤖 Agent · LLM chooses tools" if s["agent_mode"] else "⚡ Classic · Pipeline"
+    st.sidebar.markdown(
+        f'<div class="mode-indicator {mode_class}">{mode_text}</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not s["agent_mode"]:
+        with st.sidebar.expander("⚙️ Pipeline Settings", expanded=False):
+            s["use_graph"] = st.checkbox(
+                "Knowledge Graph (Neo4j)",
+                value=s["use_graph"],
+                key="cb_graph",
+            )
+            s["use_vector"] = st.checkbox(
+                "Vector Search (ChromaDB)",
+                value=s["use_vector"],
+                key="cb_vector",
+            )
+            s["use_llm"] = st.checkbox(
+                "Generate answer with LLM",
+                value=s["use_llm"],
+                key="cb_llm",
+            )
+            s["n_results"] = st.slider(
+                "Vector search results",
+                min_value=1,
+                max_value=20,
+                value=s["n_results"],
+                key="sl_nresults",
+            )
+            s["llm_provider"] = st.selectbox(
+                "LLM Provider",
+                ["gemini", "ollama"],
+                index=0 if s["llm_provider"] == "gemini" else 1,
+                key="sb_provider",
+                disabled=bool(API_URL),
+                help="Disabled in API mode — the server chooses the provider." if API_URL else None,
+            )
 
     # Drug explorer
     from pharmagraphrag.ui.components import (
@@ -519,19 +670,23 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
         st.markdown(msg.content)
 
         if msg.role == "assistant" and msg.content:
-            # Metadata badges
-            badges: list[str] = []
+            # Styled metadata pills
+            pills: list[str] = []
             if msg.drugs_extracted:
-                badges.append(f"🏷️ Drugs: {', '.join(msg.drugs_extracted)}")
+                drugs_str = ", ".join(msg.drugs_extracted)
+                pills.append(f'<span class="pharma-badge drug">🏷️ {drugs_str}</span>')
             if msg.drugs_found:
-                badges.append(f"📊 In graph: {', '.join(msg.drugs_found)}")
+                found_str = ", ".join(msg.drugs_found)
+                pills.append(f'<span class="pharma-badge graph">📊 In graph: {found_str}</span>')
             if msg.llm_provider:
-                badges.append(f"🤖 {msg.llm_provider}/{msg.llm_model}")
+                pills.append(
+                    f'<span class="pharma-badge model">⚡ {msg.llm_provider}/{msg.llm_model}</span>'
+                )
             if msg.error:
-                badges.append(f"⚠️ {msg.error}")
+                pills.append(f'<span class="pharma-badge error">⚠️ {msg.error}</span>')
 
-            if badges:
-                st.caption(" · ".join(badges))
+            if pills:
+                st.markdown(" ".join(pills), unsafe_allow_html=True)
 
             # Agent tool calls (as an expander)
             if msg.agent_tool_calls:
@@ -590,14 +745,31 @@ def main() -> None:
     _init_session()
     _render_sidebar()
 
-    # Header
+    # Hero header
     st.markdown(
-        '<h1><img src="https://img.icons8.com/color/96/pill.png" width="40" '
-        'style="vertical-align: middle; margin-right: 8px;"/>PharmaGraphRAG</h1>',
+        """
+        <div class="hero-container">
+            <div class="hero-title">💊 PharmaGraphRAG</div>
+            <div class="hero-subtitle">
+                Drug safety intelligence — Knowledge Graph + Vector Search + LLM
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-value">11.9K</span> nodes in graph
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">381K</span> relationships
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">816K</span> FAERS reports
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">88</span> drug labels
+                </div>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
-    )
-    st.caption(
-        "Query drug interactions and adverse events with Knowledge Graph + Vector Search + LLM."
     )
 
     # Display chat history
@@ -657,30 +829,45 @@ def main() -> None:
                 "for clinical decision-making.",
                 icon="⚠️",
             )
-        st.markdown("---")
-        st.markdown("### 💡 Example Questions")
 
         agent_on = st.session_state.settings.get("agent_mode", False)
         if agent_on:
             examples = [
-                "What drugs cause liver damage?",
-                "Find interactions between warfarin and aspirin",
-                "Which drugs are associated with headache?",
-                "Tell me about the safety profile of metformin",
-                "What adverse events does ibuprofen cause and what are its drug interactions?",
+                ("Reverse lookup", "What drugs cause liver damage?"),
+                ("Drug interaction", "Find interactions between warfarin and aspirin"),
+                ("Adverse events", "Which drugs are associated with headache?"),
+                ("Safety profile", "Tell me about the safety profile of metformin"),
+                ("Complex query", "What adverse events does ibuprofen cause and what are its drug interactions?"),
             ]
         else:
             examples = [
-                "What are the side effects of ibuprofen?",
-                "Does metformin interact with other drugs?",
-                "What adverse events are associated with warfarin?",
-                "Compare the safety profile of aspirin and clopidogrel",
+                ("Side effects", "What are the side effects of ibuprofen?"),
+                ("Drug interaction", "Does metformin interact with other drugs?"),
+                ("Adverse events", "What adverse events are associated with warfarin?"),
+                ("Comparison", "Compare the safety profile of aspirin and clopidogrel"),
             ]
 
+        st.markdown("#### Try asking")
         cols = st.columns(2)
-        for i, ex in enumerate(examples):
+        for i, (label, question) in enumerate(examples):
             col = cols[i % 2]
-            col.markdown(f"- _{ex}_")
+            col.markdown(
+                f'<div class="example-card">'
+                f'<div class="card-label">{label}</div>'
+                f'<div class="card-question">{question}</div>'
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # Footer
+    st.markdown(
+        '<div class="app-footer">'
+        "Built by <a href='https://github.com/jmponcebe' target='_blank'>Jose M. Ponce</a>"
+        " · <a href='https://github.com/jmponcebe/PharmaGraphRAG' target='_blank'>GitHub</a>"
+        " · <a href='https://linkedin.com/in/jmponcebe' target='_blank'>LinkedIn</a>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
