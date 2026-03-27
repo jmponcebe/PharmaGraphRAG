@@ -356,12 +356,21 @@ uv run python scripts/migrate_neo4j.py \
 
 **Google Cloud Run** — Build and deploy the API:
 ```bash
+# Option A: Local Docker build
 docker build -f docker/Dockerfile.cloudrun -t gcr.io/<project>/pharmagraphrag-api .
 docker push gcr.io/<project>/pharmagraphrag-api
+
+# Option B: Cloud Build (no local Docker needed)
+gcloud builds submit --config=cloudbuild.yaml .
+
+# Deploy to Cloud Run
 gcloud run deploy pharmagraphrag-api --image gcr.io/<project>/pharmagraphrag-api \
-    --platform managed --region us-central1 --allow-unauthenticated \
+    --region us-central1 --allow-unauthenticated \
+    --memory 2Gi --cpu 1 --min-instances 0 --max-instances 2 --timeout 300 \
     --set-env-vars NEO4J_URI=...,NEO4J_USER=neo4j,NEO4J_PASSWORD=...,GEMINI_API_KEY=...
 ```
+
+> **Note**: First request after inactivity takes ~50s (cold start). Subsequent requests ~4-5s.
 
 **Streamlit Community Cloud** — Connect your GitHub repo at [share.streamlit.io](https://share.streamlit.io), set main file to `src/pharmagraphrag/ui/app.py`, and add `API_URL` as a secret.
 
