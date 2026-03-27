@@ -61,53 +61,18 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Brand colors */
+    /* Brand color — works in both light and dark */
     :root {
         --pharma-primary: #0d9488;
         --pharma-primary-light: #14b8a6;
-        --pharma-dark: #134e4a;
-        --pharma-bg-light: #f0fdfa;
-        --pharma-accent: #f59e0b;
-        --pharma-text: #0f172a;
-        --pharma-text-secondary: #64748b;
-        --pharma-text-muted: #94a3b8;
-        --pharma-border: #e2e8f0;
-        --pharma-card-bg: #f8fafc;
-        --pharma-card-hover: #f0fdfa;
     }
 
-    /* Dark mode overrides */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --pharma-text: #e2e8f0;
-            --pharma-text-secondary: #94a3b8;
-            --pharma-text-muted: #64748b;
-            --pharma-border: #334155;
-            --pharma-card-bg: #1e293b;
-            --pharma-card-hover: #1a3a3a;
-            --pharma-bg-light: #0f2928;
-        }
-    }
-
-    /* Also detect Streamlit's dark theme (data-theme attribute) */
-    [data-testid="stAppViewContainer"][class*="dark"],
-    .stApp[data-theme="dark"],
-    [data-theme="dark"] {
-        --pharma-text: #e2e8f0;
-        --pharma-text-secondary: #94a3b8;
-        --pharma-text-muted: #64748b;
-        --pharma-border: #334155;
-        --pharma-card-bg: #1e293b;
-        --pharma-card-hover: #1a3a3a;
-        --pharma-bg-light: #0f2928;
-    }
-
-    /* Sidebar branding — adapt to dark mode */
+    /* Sidebar subtle gradient */
     section[data-testid="stSidebar"] > div:first-child {
-        background: linear-gradient(180deg, var(--pharma-bg-light) 0%, transparent 100%);
+        background: linear-gradient(180deg, rgba(13,148,136,0.06) 0%, transparent 100%);
     }
 
-    /* Metadata pills */
+    /* Metadata pills — semi-transparent, theme-adaptive */
     .pharma-badge {
         display: inline-block;
         padding: 2px 10px;
@@ -116,33 +81,26 @@ st.markdown(
         margin: 2px 4px 2px 0;
         font-weight: 500;
     }
-    .pharma-badge.drug { background: #1e3a5f; color: #93c5fd; }
-    .pharma-badge.graph { background: #064e3b; color: #6ee7b7; }
-    .pharma-badge.model { background: #78350f; color: #fcd34d; }
-    .pharma-badge.error { background: #7f1d1d; color: #fca5a5; }
-
-    @media (prefers-color-scheme: light) {
-        .pharma-badge.drug { background: #dbeafe; color: #1e40af; }
-        .pharma-badge.graph { background: #d1fae5; color: #065f46; }
-        .pharma-badge.model { background: #fef3c7; color: #92400e; }
-        .pharma-badge.error { background: #fee2e2; color: #991b1b; }
-    }
+    .pharma-badge.drug { background: rgba(59,130,246,0.15); color: inherit; }
+    .pharma-badge.graph { background: rgba(16,185,129,0.15); color: inherit; }
+    .pharma-badge.model { background: rgba(245,158,11,0.15); color: inherit; }
+    .pharma-badge.error { background: rgba(239,68,68,0.15); color: inherit; }
 
     /* Hero section */
     .hero-container {
         padding: 1.5rem 0 1rem 0;
-        border-bottom: 2px solid var(--pharma-border);
+        border-bottom: 2px solid rgba(128,128,128,0.2);
         margin-bottom: 1rem;
     }
     .hero-title {
         font-size: 2rem;
         font-weight: 700;
-        color: var(--pharma-text);
+        color: inherit;
         margin: 0;
         line-height: 1.2;
     }
     .hero-subtitle {
-        color: var(--pharma-text-secondary);
+        opacity: 0.65;
         font-size: 0.95rem;
         margin-top: 0.25rem;
     }
@@ -159,35 +117,34 @@ st.markdown(
         align-items: center;
         gap: 0.4rem;
         font-size: 0.82rem;
-        color: var(--pharma-text-secondary);
+        opacity: 0.7;
     }
     .stat-value {
         font-weight: 700;
         color: var(--pharma-primary);
+        opacity: 1;
     }
 
     /* Example question buttons — styled as cards */
     div[data-testid="stButton"] > button[kind="secondary"] {
         text-align: left !important;
-        background: var(--pharma-card-bg) !important;
-        border: 1px solid var(--pharma-border) !important;
+        border: 1px solid rgba(128,128,128,0.2) !important;
         border-radius: 10px !important;
         padding: 0.8rem 1rem !important;
         width: 100% !important;
-        transition: border-color 0.2s, background 0.2s !important;
+        transition: border-color 0.2s !important;
     }
     div[data-testid="stButton"] > button[kind="secondary"]:hover {
         border-color: var(--pharma-primary) !important;
-        background: var(--pharma-card-hover) !important;
     }
 
     /* Footer */
     .app-footer {
         text-align: center;
         padding: 2rem 0 1rem 0;
-        border-top: 1px solid var(--pharma-border);
+        border-top: 1px solid rgba(128,128,128,0.2);
         margin-top: 2rem;
-        color: var(--pharma-text-muted);
+        opacity: 0.5;
         font-size: 0.8rem;
     }
     .app-footer a {
@@ -211,12 +168,12 @@ st.markdown(
         margin: 0.5rem 0;
     }
     .mode-indicator.agent {
-        background: linear-gradient(135deg, #dbeafe, #ede9fe);
-        color: #4338ca;
+        background: rgba(99,102,241,0.12);
+        color: inherit;
     }
     .mode-indicator.classic {
-        background: linear-gradient(135deg, #d1fae5, #cffafe);
-        color: #065f46;
+        background: rgba(13,148,136,0.12);
+        color: inherit;
     }
     </style>
     """,
