@@ -1,0 +1,20 @@
+﻿# ============================================================
+# Cloud Build config for PharmaGraphRAG Cloud Run image
+# ============================================================
+# Swaps .dockerignore → Dockerfile.cloudrun.dockerignore so
+# data/chroma/ is included in the build context (needed for
+# baked-in ChromaDB embeddings).
+#
+# Usage:
+#   gcloud builds submit --config=cloudbuild.yaml .
+# ============================================================
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
+      docker build -f docker/Dockerfile.cloudrun -t gcr.io/pharmagraphrag/pharmagraphrag-api:latest .
+images: ['gcr.io/pharmagraphrag/pharmagraphrag-api:latest']
+timeout: '1800s'
