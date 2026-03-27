@@ -46,7 +46,7 @@ def find_drugs_for_adverse_event(event_name: str, limit: int = 15) -> str:
         return f"No drugs found for adverse event '{event_name}'."
     lines = [f"Drugs associated with {event_name.upper()}:"]
     for r in results:
-        lines.append(f"  - {r['drug']}: {r['report_count']} reports")
+        lines.append(f"  - {r['drug_name']}: {r['report_count']} reports")
     return "\n".join(lines)
 
 
@@ -89,7 +89,7 @@ def list_drug_interactions(drug_name: str) -> str:
         return f"No known interactions found for '{drug_name}'."
     lines = [f"Known interactions for {drug_name.upper()}:"]
     for ix in interactions:
-        partner = ix.get("drug", "unknown")
+        partner = ix.get("interacting_drug", "unknown")
         source = ix.get("source", "")
         desc = ix.get("description", "")
         line = f"  - {partner}"

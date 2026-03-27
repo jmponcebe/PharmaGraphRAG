@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from langchain_core.messages import ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
@@ -43,6 +44,9 @@ class AgentResponse:
 
     answer: str = ""
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    tool_results: list[dict[str, Any]] = field(default_factory=list)
+    graph_data: dict[str, Any] = field(default_factory=dict)
+    vector_data: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
 
     @property
@@ -79,6 +83,54 @@ def _get_agent():
     return _agent
 
 
+def _collect_structured_data(
+    tool_calls: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Re-fetch structured data from services based on which tools were called.
+
+    This avoids parsing formatted text: we know the tool args, so we call the
+    same underlying services to get raw dicts for UI rendering (graph viz,
+    sources panel).
+    """
+    from pharmagraphrag.graph import queries
+    from pharmagraphrag.vectorstore import store as vs
+
+    graph_data: dict[str, Any] = {}
+    vector_data: list[dict[str, Any]] = []
+    seen_drugs: set[str] = set()
+
+    for tc in tool_calls:
+        name = tc.get("tool", "")
+        args = tc.get("args", {})
+
+        if name in ("search_drug_info", "list_drug_interactions"):
+            drug = args.get("drug_name", "").upper()
+            if drug and drug not in seen_drugs:
+                try:
+                    ctx = queries.get_drug_full_context(drug)
+                    if ctx and ctx.get("drug_info"):
+                        graph_data[drug] = ctx
+                        seen_drugs.add(drug)
+                except Exception:
+                    pass
+
+        elif name == "search_drug_labels":
+            query = args.get("query", "")
+            drug = args.get("drug_name", "")
+            n = args.get("n_results", 5)
+            if query:
+                try:
+                    if drug:
+                        results = vs.search_by_drug(query, drug.upper(), n_results=n)
+                    else:
+                        results = vs.search(query, n_results=n)
+                    vector_data.extend(results)
+                except Exception:
+                    pass
+
+    return graph_data, vector_data
+
+
 def run_agent(question: str) -> AgentResponse:
     """Run the ReAct agent on a user question.
 
@@ -93,8 +145,9 @@ def run_agent(question: str) -> AgentResponse:
     try:
         result = agent.invoke({"messages": [("user", question)]})
 
-        # Extract tool calls from message history
+        # Extract tool calls and tool results from message history
         tool_calls = []
+        tool_results = []
         for msg in result.get("messages", []):
             if hasattr(msg, "tool_calls") and msg.tool_calls:
                 for tc in msg.tool_calls:
@@ -104,6 +157,13 @@ def run_agent(question: str) -> AgentResponse:
                             "args": tc.get("args", {}),
                         }
                     )
+            if isinstance(msg, ToolMessage):
+                tool_results.append(
+                    {
+                        "tool": msg.name or "",
+                        "content": msg.content,
+                    }
+                )
 
         # Last message is the final answer
         messages = result.get("messages", [])
@@ -126,7 +186,16 @@ def run_agent(question: str) -> AgentResponse:
             len(answer),
         )
 
-        return AgentResponse(answer=answer, tool_calls=tool_calls)
+        # Collect structured data for UI visualization
+        graph_data, vector_data = _collect_structured_data(tool_calls)
+
+        return AgentResponse(
+            answer=answer,
+            tool_calls=tool_calls,
+            tool_results=tool_results,
+            graph_data=graph_data,
+            vector_data=vector_data,
+        )
 
     except Exception as exc:
         logger.error("Agent execution failed: {}", exc)

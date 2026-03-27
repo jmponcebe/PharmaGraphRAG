@@ -5,6 +5,8 @@ Defines request and response schemas for the REST API.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
@@ -104,10 +106,20 @@ class ToolCallInfo(BaseModel):
     args: dict = Field(default_factory=dict)
 
 
+class ToolResultInfo(BaseModel):
+    """Record of a single tool result returned to the agent."""
+
+    tool: str = ""
+    content: str = ""
+
+
 class AgentQueryResponse(BaseModel):
     """Response for POST /agent/query."""
 
     question: str
     answer: str = ""
     tool_calls: list[ToolCallInfo] = Field(default_factory=list)
+    tool_results: list[ToolResultInfo] = Field(default_factory=list)
+    graph_data: dict[str, Any] = Field(default_factory=dict)
+    vector_data: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None

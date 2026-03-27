@@ -25,6 +25,7 @@ from pharmagraphrag.api.models import (
     QueryResponse,
     SourceInfo,
     ToolCallInfo,
+    ToolResultInfo,
 )
 
 app = FastAPI(
@@ -210,6 +211,9 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
             question=req.question,
             answer=result.answer,
             tool_calls=[ToolCallInfo(**tc) for tc in result.tool_calls],
+            tool_results=[ToolResultInfo(**tr) for tr in result.tool_results],
+            graph_data=result.graph_data,
+            vector_data=result.vector_data,
             error=result.error,
         )
     except Exception as exc:

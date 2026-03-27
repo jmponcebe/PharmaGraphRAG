@@ -76,8 +76,8 @@ class TestToolExecution:
     @patch("pharmagraphrag.agent.tools.queries.get_adverse_event_drugs")
     def test_find_drugs_for_event(self, mock_ae):
         mock_ae.return_value = [
-            {"drug": "ASPIRIN", "report_count": 100},
-            {"drug": "IBUPROFEN", "report_count": 50},
+            {"drug_name": "ASPIRIN", "report_count": 100},
+            {"drug_name": "IBUPROFEN", "report_count": 50},
         ]
 
         from pharmagraphrag.agent.tools import find_drugs_for_adverse_event
@@ -122,7 +122,7 @@ class TestToolExecution:
     @patch("pharmagraphrag.agent.tools.queries.get_drug_interactions")
     def test_list_interactions(self, mock_ix):
         mock_ix.return_value = [
-            {"drug": "WARFARIN", "source": "dailymed", "description": "increased bleeding risk"}
+            {"interacting_drug": "WARFARIN", "source": "DailyMed", "description": "increased bleeding risk"}
         ]
 
         from pharmagraphrag.agent.tools import list_drug_interactions
