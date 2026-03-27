@@ -338,6 +338,17 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
 
         answer = data.get("answer", "")
+        error = data.get("error")
+
+        # Show error as content if no answer was generated
+        if error and not answer:
+            return ChatMessage(
+                role="assistant",
+                content=f"⚠️ {error}",
+                error=error,
+                llm_provider="agent",
+                llm_model="gemini-2.5-flash-lite",
+            )
 
         # Use structured data returned by the agent
         graph_raw = data.get("graph_data", {})
@@ -352,8 +363,8 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash",
-            error=data.get("error"),
+            llm_model="gemini-2.5-flash-lite",
+            error=error,
         )
 
     except req_lib.exceptions.ReadTimeout:
@@ -384,6 +395,16 @@ def _process_question_agent_local(question: str) -> ChatMessage:
 
         result = run_agent(question)
 
+        # Show error as content if no answer was generated
+        if result.error and not result.answer:
+            return ChatMessage(
+                role="assistant",
+                content=f"⚠️ {result.error}",
+                error=result.error,
+                llm_provider="agent",
+                llm_model="gemini-2.5-flash-lite",
+            )
+
         # Format tool calls for display
         tool_info = ""
         if result.tool_calls:
@@ -404,7 +425,7 @@ def _process_question_agent_local(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash",
+            llm_model="gemini-2.5-flash-lite",
             error=result.error,
         )
 

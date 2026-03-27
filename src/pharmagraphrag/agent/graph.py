@@ -54,12 +54,16 @@ class AgentResponse:
         return self.error is None and bool(self.answer)
 
 
+# Agent uses flash-lite to save quota (separate RPD limit from classic mode's flash)
+AGENT_MODEL = "gemini-2.5-flash-lite"
+
+
 def _build_agent():
     """Create the LangGraph ReAct agent."""
     settings = get_settings()
 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=AGENT_MODEL,
         google_api_key=settings.gemini_api_key,
         temperature=0.3,
         max_output_tokens=2048,
@@ -198,5 +202,11 @@ def run_agent(question: str) -> AgentResponse:
         )
 
     except Exception as exc:
+        error_msg = str(exc)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            logger.warning("Agent rate limited: {}", error_msg[:200])
+            return AgentResponse(
+                error="Rate limit exceeded. The free tier allows ~20 requests/day per model. Please try again later or use Classic Mode."
+            )
         logger.error("Agent execution failed: {}", exc)
-        return AgentResponse(error=str(exc))
+        return AgentResponse(error=error_msg)
