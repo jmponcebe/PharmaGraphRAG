@@ -37,36 +37,19 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker --quiet
-
-      - name: Prepare build context
-        run: cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
-
-      - name: Build Docker image
+      - name: Build and deploy via Cloud Build
         run: |
-          docker build \
-            -f docker/Dockerfile.cloudrun \
-            -t ${{ env.IMAGE }}:${{ github.ref_name }} \
-            -t ${{ env.IMAGE }}:latest \
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=_TAG=${{ github.ref_name }} \
+            --project=${{ env.PROJECT_ID }} \
+            --timeout=1800s \
             .
-
-      - name: Push Docker image
-        run: |
-          docker push ${{ env.IMAGE }}:${{ github.ref_name }}
-          docker push ${{ env.IMAGE }}:latest
-
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE }}
-          image: ${{ env.IMAGE }}:${{ github.ref_name }}
-          region: ${{ env.REGION }}
 
       - name: Show deployment URL
         run: |
           URL=$(gcloud run services describe ${{ env.SERVICE }} \
             --region=${{ env.REGION }} \
             --format='value(status.url)')
-          echo "🚀 Deployed to: $URL"
-          echo "📦 Image tag: ${{ github.ref_name }}"
+          echo "Deployed to: $URL"
+          echo "Image tag: ${{ github.ref_name }}"

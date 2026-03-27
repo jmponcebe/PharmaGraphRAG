@@ -1,29 +1,49 @@
 ﻿# ============================================================
 # Cloud Build config for PharmaGraphRAG Cloud Run image
 # ============================================================
-# Swaps .dockerignore → Dockerfile.cloudrun.dockerignore so
-# data/chroma/ is included in the build context (needed for
-# baked-in ChromaDB embeddings).
+# Downloads ChromaDB data from GCS, then builds Docker image
+# with baked-in embeddings. Works from both local and CI/CD.
 #
-# Usage:
+# Usage (local):
 #   gcloud builds submit --config=cloudbuild.yaml .
+# Usage (CI/CD):
+#   gcloud builds submit --config=cloudbuild.yaml --no-source
 # ============================================================
 steps:
+# Download ChromaDB data from GCS
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      mkdir -p data/chroma
+      gcloud storage cp -r gs://pharmagraphrag-data/chroma/chroma/* data/chroma/
+
+# Build Docker image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
     - '-c'
     - |
       cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
-      docker build -f docker/Dockerfile.cloudrun -t gcr.io/pharmagraphrag/pharmagraphrag-api:latest .
+      docker build -f docker/Dockerfile.cloudrun \
+        -t gcr.io/pharmagraphrag/pharmagraphrag-api:$_TAG \
+        -t gcr.io/pharmagraphrag/pharmagraphrag-api:latest \
+        .
+
+# Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args:
     - 'run'
     - 'deploy'
     - 'pharmagraphrag-api'
-    - '--image=gcr.io/pharmagraphrag/pharmagraphrag-api:latest'
+    - '--image=gcr.io/pharmagraphrag/pharmagraphrag-api:$_TAG'
     - '--region=us-central1'
     - '--platform=managed'
+
+substitutions:
+  _TAG: latest
+
 images: ['gcr.io/pharmagraphrag/pharmagraphrag-api:latest']
 timeout: '1800s'
