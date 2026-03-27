@@ -73,6 +73,8 @@ class ChatMessage:
     llm_provider: str = ""
     llm_model: str = ""
     error: str | None = None
+    agent_tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    agent_tool_results: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -327,16 +329,8 @@ def _process_question_agent_api(question: str) -> ChatMessage:
 
         data = resp.json()
 
-        # Format tool calls for display
-        tool_info = ""
         tool_calls = data.get("tool_calls", [])
-        if tool_calls:
-            tool_lines = [f"🔧 **Tools used** ({len(tool_calls)}):"]
-            for tc in tool_calls:
-                args_str = ", ".join(f"{k}={v!r}" for k, v in tc.get("args", {}).items())
-                tool_lines.append(f"  - `{tc.get('tool', '')}({args_str})`")
-            tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
-
+        tool_results = data.get("tool_results", [])
         answer = data.get("answer", "")
         error = data.get("error")
 
@@ -357,7 +351,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
 
         return ChatMessage(
             role="assistant",
-            content=tool_info + answer,
+            content=answer,
             sources_graph=graph_raw,
             sources_vector=vector_raw,
             drugs_extracted=drugs,
@@ -365,6 +359,8 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             llm_provider="agent",
             llm_model="gemini-2.5-flash-lite",
             error=error,
+            agent_tool_calls=tool_calls,
+            agent_tool_results=tool_results,
         )
 
     except req_lib.exceptions.ReadTimeout:
@@ -405,21 +401,16 @@ def _process_question_agent_local(question: str) -> ChatMessage:
                 llm_model="gemini-2.5-flash-lite",
             )
 
-        # Format tool calls for display
-        tool_info = ""
-        if result.tool_calls:
-            tool_lines = [f"🔧 **Tools used** ({len(result.tool_calls)}):"]
-            for tc in result.tool_calls:
-                args_str = ", ".join(f"{k}={v!r}" for k, v in tc.get("args", {}).items())
-                tool_lines.append(f"  - `{tc.get('tool', '')}({args_str})`")
-            tool_info = "\n".join(tool_lines) + "\n\n---\n\n"
+        # Format tool calls/results for structured storage
+        tc_list = result.tool_calls if result.tool_calls else []
+        tr_list = result.tool_results if result.tool_results else []
 
         # Use structured data collected by run_agent()
         drugs = list(result.graph_data.keys())
 
         return ChatMessage(
             role="assistant",
-            content=tool_info + result.answer,
+            content=result.answer,
             sources_graph=result.graph_data,
             sources_vector=result.vector_data,
             drugs_extracted=drugs,
@@ -427,6 +418,8 @@ def _process_question_agent_local(question: str) -> ChatMessage:
             llm_provider="agent",
             llm_model="gemini-2.5-flash-lite",
             error=result.error,
+            agent_tool_calls=tc_list,
+            agent_tool_results=tr_list,
         )
 
     except Exception as exc:
@@ -540,6 +533,31 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
             if badges:
                 st.caption(" · ".join(badges))
 
+            # Agent tool calls (as an expander)
+            if msg.agent_tool_calls:
+                with st.expander(
+                    f"🔧 Agent reasoning ({len(msg.agent_tool_calls)} tool calls)",
+                    expanded=False,
+                ):
+                    for i_tc, tc in enumerate(msg.agent_tool_calls):
+                        tool_name = tc.get("tool", "unknown")
+                        args = tc.get("args", {})
+                        args_str = ", ".join(
+                            f"{k}={v!r}" for k, v in args.items()
+                        )
+                        st.markdown(f"**{i_tc + 1}.** `{tool_name}({args_str})`")
+
+                        # Show result if available
+                        if i_tc < len(msg.agent_tool_results):
+                            result_content = msg.agent_tool_results[i_tc].get(
+                                "content", ""
+                            )
+                            if result_content:
+                                preview = result_content[:500]
+                                if len(result_content) > 500:
+                                    preview += "…"
+                                st.code(preview, language=None)
+
             # Sources & graph visualisation (in tabs)
             has_sources = msg.sources_graph or msg.sources_vector
             if has_sources:
@@ -642,13 +660,22 @@ def main() -> None:
         st.markdown("---")
         st.markdown("### 💡 Example Questions")
 
-        examples = [
-            "What are the side effects of ibuprofen?",
-            "Does metformin interact with other drugs?",
-            "What adverse events are associated with warfarin?",
-            "Compare the safety profile of aspirin and clopidogrel",
-            "What drugs cause liver damage?",
-        ]
+        agent_on = st.session_state.settings.get("agent_mode", False)
+        if agent_on:
+            examples = [
+                "What drugs cause liver damage?",
+                "Find interactions between warfarin and aspirin",
+                "Which drugs are associated with headache?",
+                "Tell me about the safety profile of metformin",
+                "What adverse events does ibuprofen cause and what are its drug interactions?",
+            ]
+        else:
+            examples = [
+                "What are the side effects of ibuprofen?",
+                "Does metformin interact with other drugs?",
+                "What adverse events are associated with warfarin?",
+                "Compare the safety profile of aspirin and clopidogrel",
+            ]
 
         cols = st.columns(2)
         for i, ex in enumerate(examples):

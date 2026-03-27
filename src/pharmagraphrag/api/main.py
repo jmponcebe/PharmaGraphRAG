@@ -105,6 +105,16 @@ def query(req: QueryRequest) -> QueryResponse:
             llm_provider = llm_resp.provider
             if not llm_resp.ok:
                 error = llm_resp.error
+                # Fallback: present retrieved context as the answer
+                if result.has_context:
+                    answer = (
+                        "⚠️ *LLM unavailable — showing retrieved data directly.*\n\n"
+                        + result.context.graph_context
+                    )
+                    if result.context.has_vector:
+                        answer += "\n\n---\n**Relevant drug label excerpts:**\n"
+                        answer += result.context.vector_context[:2000]
+                    llm_provider = "fallback"
 
         return QueryResponse(
             question=req.question,
@@ -207,6 +217,12 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
 
     try:
         result = run_agent(req.question)
+
+        # If the agent hit rate limits, fall back to classic pipeline
+        if not result.ok and result.error and "rate limit" in result.error.lower():
+            logger.info("Agent rate-limited, falling back to classic pipeline")
+            return _agent_fallback_to_classic(req.question)
+
         return AgentQueryResponse(
             question=req.question,
             answer=result.answer,
@@ -219,6 +235,68 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
     except Exception as exc:
         logger.error("Agent query failed: {}", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Agent → Classic fallback
+# ---------------------------------------------------------------------------
+
+
+def _agent_fallback_to_classic(question: str) -> AgentQueryResponse:
+    """Run the classic GraphRAG pipeline as a fallback when the agent is unavailable.
+
+    Extracts entities, retrieves graph/vector context, and tries the LLM.
+    If the LLM also fails, returns the raw retrieved context.
+    """
+    from pharmagraphrag.engine.query_engine import process_query
+    from pharmagraphrag.llm.client import generate_answer
+
+    result = process_query(question)
+
+    # Try to generate an LLM answer
+    answer = ""
+    llm_failed = False
+    if result.has_context:
+        llm_resp = generate_answer(
+            system_prompt=result.system_prompt,
+            user_prompt=result.user_prompt,
+        )
+        if llm_resp.ok:
+            answer = llm_resp.text
+        else:
+            llm_failed = True
+
+    # Build fallback answer from context
+    if not answer and result.has_context:
+        answer = result.context.graph_context
+        if result.context.has_vector:
+            answer += "\n\n---\n**Relevant drug label excerpts:**\n"
+            answer += result.context.vector_context[:2000]
+
+    disclaimer = (
+        "⚠️ *Agent unavailable (rate limit) — answered via classic pipeline.*\n\n"
+        if not llm_failed
+        else "⚠️ *LLM unavailable — showing retrieved data directly.*\n\n"
+    )
+
+    # Build graph_data for UI visualization
+    graph_data: dict = {}
+    for drug, ctx in result.context.graph_raw.items():
+        if ctx and ctx.get("drug_info"):
+            graph_data[drug] = ctx
+
+    # Build vector_data for UI sources
+    vector_data = result.context.vector_raw
+
+    return AgentQueryResponse(
+        question=question,
+        answer=disclaimer + answer if answer else disclaimer + "No relevant data found for this query.",
+        tool_calls=[],
+        tool_results=[],
+        graph_data=graph_data,
+        vector_data=vector_data,
+        error=None,  # Clear the error since we recovered
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -260,3 +260,73 @@ class TestHealthEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert "error" in data["neo4j"]
+
+
+# ===========================================================================
+# Fallback tests
+# ===========================================================================
+
+
+class TestFallbackBehavior:
+    """Tests for LLM failure fallback and agent-to-classic fallback."""
+
+    @patch("pharmagraphrag.llm.client.generate_answer")
+    @patch("pharmagraphrag.engine.query_engine.process_query")
+    def test_classic_llm_failure_with_context_returns_graph_data(self, mock_process, mock_llm):
+        """When LLM fails but graph context exists, return context as answer."""
+        mock_process.return_value = QueryResult(
+            question="side effects of aspirin?",
+            entities=ExtractedEntities(drugs=["ASPIRIN"]),
+            context=RetrievedContext(
+                graph_context="Drug: ASPIRIN\nAdverse events: NAUSEA (500 reports)",
+                vector_context="[Source 1] Aspirin may cause stomach bleeding...",
+                drugs_found=["ASPIRIN"],
+            ),
+            system_prompt="SYS",
+            user_prompt="USR",
+        )
+        mock_llm.return_value = LLMResponse(
+            text="", model="gemini-2.5-flash", provider="gemini",
+            error="429 RESOURCE_EXHAUSTED",
+        )
+
+        resp = client.post("/query", json={"question": "side effects of aspirin?"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "ASPIRIN" in data["answer"]
+        assert "LLM unavailable" in data["answer"]
+        assert data["llm_provider"] == "fallback"
+
+    @patch("pharmagraphrag.agent.graph.run_agent")
+    @patch("pharmagraphrag.llm.client.generate_answer")
+    @patch("pharmagraphrag.engine.query_engine.process_query")
+    def test_agent_rate_limit_falls_back_to_classic(self, mock_process, mock_llm, mock_agent):
+        """When agent hits rate limit, fallback to classic pipeline."""
+        from pharmagraphrag.agent.graph import AgentResponse
+
+        mock_agent.return_value = AgentResponse(
+            error="Rate limit exceeded. The free tier allows ~20 requests/day per model."
+        )
+
+        mock_process.return_value = QueryResult(
+            question="interactions of warfarin?",
+            entities=ExtractedEntities(drugs=["WARFARIN"]),
+            context=RetrievedContext(
+                graph_context="Drug: WARFARIN\nInteracts with: ASPIRIN",
+                drugs_found=["WARFARIN"],
+                graph_raw={"WARFARIN": {"drug_info": {"name": "WARFARIN"}, "interactions": []}},
+            ),
+            system_prompt="SYS",
+            user_prompt="USR",
+        )
+        mock_llm.return_value = LLMResponse(
+            text="Warfarin interacts with aspirin.",
+            model="gemini-2.5-flash", provider="gemini",
+        )
+
+        resp = client.post("/agent/query", json={"question": "interactions of warfarin?"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "classic pipeline" in data["answer"].lower() or "warfarin" in data["answer"].lower()
+        assert data["error"] is None  # Error cleared after recovery
+        assert "WARFARIN" in data["graph_data"]
