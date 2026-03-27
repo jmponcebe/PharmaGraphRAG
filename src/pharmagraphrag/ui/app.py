@@ -67,9 +67,9 @@ st.markdown(
         --pharma-primary-light: #14b8a6;
     }
 
-    /* Sidebar subtle gradient */
+    /* Sidebar subtle gradient — teal wash */
     section[data-testid="stSidebar"] > div:first-child {
-        background: linear-gradient(180deg, rgba(13,148,136,0.06) 0%, transparent 100%);
+        background: linear-gradient(180deg, rgba(13,148,136,0.08) 0%, rgba(13,148,136,0.02) 50%, transparent 100%);
     }
 
     /* Metadata pills — semi-transparent, theme-adaptive */
@@ -81,10 +81,10 @@ st.markdown(
         margin: 2px 4px 2px 0;
         font-weight: 500;
     }
-    .pharma-badge.drug { background: rgba(59,130,246,0.15); color: inherit; }
-    .pharma-badge.graph { background: rgba(16,185,129,0.15); color: inherit; }
-    .pharma-badge.model { background: rgba(245,158,11,0.15); color: inherit; }
-    .pharma-badge.error { background: rgba(239,68,68,0.15); color: inherit; }
+    .pharma-badge.drug { background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.10)); color: inherit; }
+    .pharma-badge.graph { background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.10)); color: inherit; }
+    .pharma-badge.model { background: linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.10)); color: inherit; }
+    .pharma-badge.error { background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(244,63,94,0.10)); color: inherit; }
 
     /* Hero section */
     .hero-container {
@@ -136,6 +136,7 @@ st.markdown(
     }
     div[data-testid="stButton"] > button[kind="secondary"]:hover {
         border-color: var(--pharma-primary) !important;
+        background: rgba(13,148,136,0.06) !important;
     }
 
     /* Footer */
@@ -168,11 +169,11 @@ st.markdown(
         margin: 0.5rem 0;
     }
     .mode-indicator.agent {
-        background: rgba(99,102,241,0.12);
+        background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.10));
         color: inherit;
     }
     .mode-indicator.classic {
-        background: rgba(13,148,136,0.12);
+        background: linear-gradient(135deg, rgba(13,148,136,0.15), rgba(6,182,212,0.10));
         color: inherit;
     }
     </style>
