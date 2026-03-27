@@ -107,7 +107,18 @@ def run_agent(question: str) -> AgentResponse:
 
         # Last message is the final answer
         messages = result.get("messages", [])
-        answer = messages[-1].content if messages else ""
+        raw_content = messages[-1].content if messages else ""
+
+        # Gemini 2.5 Flash may return content as a list of blocks
+        # (e.g. [{"type": "text", "text": "..."}, ...]) instead of a string
+        if isinstance(raw_content, list):
+            answer = "\n".join(
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in raw_content
+                if not (isinstance(block, dict) and block.get("type") == "thinking")
+            ).strip()
+        else:
+            answer = str(raw_content)
 
         logger.info(
             "Agent completed: {} tool calls, answer length={}",
