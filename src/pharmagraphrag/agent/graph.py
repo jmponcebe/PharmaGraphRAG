@@ -64,6 +64,10 @@ class AgentResponse:
 # Agent uses flash-lite to save quota (separate RPD limit from classic mode's flash)
 AGENT_MODEL = "gemini-2.5-flash-lite"
 
+# Simple in-memory response cache to avoid wasting RPD on repeated questions
+_response_cache: dict[str, AgentResponse] = {}
+_CACHE_MAX_SIZE = 50
+
 
 def _build_agent():
     """Create the LangGraph ReAct agent."""
@@ -173,6 +177,12 @@ def run_agent(question: str) -> AgentResponse:
     Returns:
         AgentResponse with the answer and tool call history.
     """
+    # Check cache to save RPD quota
+    cache_key = question.strip().lower()
+    if cache_key in _response_cache:
+        logger.info("Agent cache hit for: '{}'", question[:60])
+        return _response_cache[cache_key]
+
     agent = _get_agent()
 
     try:
@@ -222,13 +232,22 @@ def run_agent(question: str) -> AgentResponse:
         # Collect structured data for UI visualization
         graph_data, vector_data = _collect_structured_data(tool_calls, tool_results)
 
-        return AgentResponse(
+        response = AgentResponse(
             answer=answer,
             tool_calls=tool_calls,
             tool_results=tool_results,
             graph_data=graph_data,
             vector_data=vector_data,
         )
+
+        # Cache successful responses
+        if response.ok:
+            if len(_response_cache) >= _CACHE_MAX_SIZE:
+                # Evict oldest entry
+                _response_cache.pop(next(iter(_response_cache)))
+            _response_cache[cache_key] = response
+
+        return response
 
     except Exception as exc:
         error_msg = str(exc)
