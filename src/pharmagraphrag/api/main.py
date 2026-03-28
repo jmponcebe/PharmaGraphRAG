@@ -231,6 +231,10 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
             graph_data=result.graph_data,
             vector_data=result.vector_data,
             error=result.error,
+            drugs_mentioned=result.drugs_mentioned,
+            adverse_events_mentioned=result.adverse_events_mentioned,
+            confidence=result.confidence,
+            follow_up_suggestions=result.follow_up_suggestions,
         )
     except Exception as exc:
         logger.error("Agent query failed: {}", exc)
@@ -266,6 +270,10 @@ def multi_agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
             graph_data=result.graph_data,
             vector_data=result.vector_data,
             error=result.error,
+            drugs_mentioned=result.drugs_mentioned,
+            adverse_events_mentioned=result.adverse_events_mentioned,
+            confidence=result.confidence,
+            follow_up_suggestions=result.follow_up_suggestions,
         )
     except Exception as exc:
         logger.error("Multi-agent query failed: {}", exc)

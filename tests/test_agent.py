@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from pharmagraphrag.agent.graph import AgentResponse
+from pharmagraphrag.agent.graph import AgentResponse, StructuredResponse
 from pharmagraphrag.agent.tools import ALL_TOOLS
 from pharmagraphrag.api.main import app
 from pharmagraphrag.api.models import AgentQueryResponse, ToolCallInfo
@@ -306,6 +306,49 @@ class TestAgentResponse:
         r = AgentResponse(answer="test")
         assert r.tool_calls == []
 
+    def test_structured_output_fields_default(self):
+        r = AgentResponse(answer="test")
+        assert r.drugs_mentioned == []
+        assert r.adverse_events_mentioned == []
+        assert r.confidence == ""
+        assert r.follow_up_suggestions == []
+
+    def test_structured_output_fields_populated(self):
+        r = AgentResponse(
+            answer="Aspirin is an NSAID.",
+            drugs_mentioned=["ASPIRIN"],
+            adverse_events_mentioned=["NAUSEA"],
+            confidence="high",
+            follow_up_suggestions=["What are the interactions of aspirin?"],
+        )
+        assert r.drugs_mentioned == ["ASPIRIN"]
+        assert r.adverse_events_mentioned == ["NAUSEA"]
+        assert r.confidence == "high"
+        assert len(r.follow_up_suggestions) == 1
+
+
+class TestStructuredResponse:
+    """Test the StructuredResponse Pydantic model used for agent output format."""
+
+    def test_defaults(self):
+        s = StructuredResponse(answer="Test answer")
+        assert s.drugs_mentioned == []
+        assert s.adverse_events_mentioned == []
+        assert s.confidence == "medium"
+        assert s.follow_up_suggestions == []
+
+    def test_full(self):
+        s = StructuredResponse(
+            answer="Aspirin causes nausea.",
+            drugs_mentioned=["ASPIRIN"],
+            adverse_events_mentioned=["NAUSEA"],
+            confidence="high",
+            follow_up_suggestions=["What is the dose?"],
+        )
+        assert s.answer == "Aspirin causes nausea."
+        assert len(s.drugs_mentioned) == 1
+        assert s.confidence == "high"
+
 
 # ===========================================================================
 # API models
@@ -318,6 +361,10 @@ class TestAgentApiModels:
     def test_agent_query_response_defaults(self):
         r = AgentQueryResponse(question="test?")
         assert r.answer == ""
+        assert r.drugs_mentioned == []
+        assert r.adverse_events_mentioned == []
+        assert r.confidence == ""
+        assert r.follow_up_suggestions == []
         assert r.tool_calls == []
         assert r.error is None
 

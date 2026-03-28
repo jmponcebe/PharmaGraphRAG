@@ -128,3 +128,8 @@ class AgentQueryResponse(BaseModel):
     graph_data: dict[str, Any] = Field(default_factory=dict)
     vector_data: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None
+    # Structured output metadata
+    drugs_mentioned: list[str] = Field(default_factory=list)
+    adverse_events_mentioned: list[str] = Field(default_factory=list)
+    confidence: str = Field("", description="Agent confidence: 'high', 'medium', or 'low'.")
+    follow_up_suggestions: list[str] = Field(default_factory=list)

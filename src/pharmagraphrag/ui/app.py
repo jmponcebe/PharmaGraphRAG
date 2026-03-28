@@ -202,6 +202,9 @@ class ChatMessage:
     error: str | None = None
     agent_tool_calls: list[dict[str, Any]] = field(default_factory=list)
     agent_tool_results: list[dict[str, Any]] = field(default_factory=list)
+    # Structured output metadata from agent
+    confidence: str = ""
+    follow_up_suggestions: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -529,6 +532,8 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
+            confidence=data.get("confidence", ""),
+            follow_up_suggestions=data.get("follow_up_suggestions", []),
         )
 
     except req_lib.exceptions.ReadTimeout:
@@ -606,6 +611,8 @@ def _process_question_multi_api(question: str) -> ChatMessage:
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
+            confidence=data.get("confidence", ""),
+            follow_up_suggestions=data.get("follow_up_suggestions", []),
         )
 
     except req_lib.exceptions.ReadTimeout:
@@ -661,6 +668,8 @@ def _process_question_multi_local(question: str) -> ChatMessage:
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
+            confidence=result.confidence,
+            follow_up_suggestions=result.follow_up_suggestions,
         )
 
     except Exception as exc:
@@ -714,6 +723,8 @@ def _process_question_agent_local(question: str) -> ChatMessage:
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
+            confidence=result.confidence,
+            follow_up_suggestions=result.follow_up_suggestions,
         )
 
     except Exception as exc:
@@ -827,6 +838,11 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                 )
             if msg.error:
                 pills.append(f'<span class="pharma-badge error">⚠️ {msg.error}</span>')
+            if msg.confidence:
+                conf_icon = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(msg.confidence, "⚪")
+                pills.append(
+                    f'<span class="pharma-badge model">{conf_icon} Confidence: {msg.confidence}</span>'
+                )
 
             if pills:
                 st.markdown(" ".join(pills), unsafe_allow_html=True)
@@ -872,6 +888,12 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                         render_graph(msg.sources_graph, key_suffix=str(index))
                     except Exception as e:
                         st.error(f"Error rendering graph: {e}")
+
+            # Follow-up suggestions from structured output
+            if msg.follow_up_suggestions:
+                st.markdown("**💡 Follow-up questions:**")
+                for suggestion in msg.follow_up_suggestions:
+                    st.markdown(f"- {suggestion}")
 
 
 # ---------------------------------------------------------------------------

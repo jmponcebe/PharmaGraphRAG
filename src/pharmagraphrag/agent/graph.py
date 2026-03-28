@@ -14,6 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
+from pydantic import BaseModel, Field
 
 from pharmagraphrag.agent.tools import ALL_TOOLS
 from pharmagraphrag.config import get_settings
@@ -52,6 +53,33 @@ Guidelines:
 """
 
 
+# ---------------------------------------------------------------------------
+# Structured output model — forces the LLM to return consistent JSON
+# ---------------------------------------------------------------------------
+
+
+class StructuredResponse(BaseModel):
+    """Structured response format for the agent's final answer."""
+
+    answer: str = Field(description="The main answer to the user's question, in clear prose.")
+    drugs_mentioned: list[str] = Field(
+        default_factory=list,
+        description="List of drug names mentioned in the answer (uppercase).",
+    )
+    adverse_events_mentioned: list[str] = Field(
+        default_factory=list,
+        description="List of adverse event names mentioned in the answer (uppercase, MedDRA terms).",
+    )
+    confidence: str = Field(
+        default="medium",
+        description="How confident the answer is based on available data: 'high', 'medium', or 'low'.",
+    )
+    follow_up_suggestions: list[str] = Field(
+        default_factory=list,
+        description="1-3 suggested follow-up questions the user might ask.",
+    )
+
+
 @dataclass
 class AgentResponse:
     """Response from the agent execution."""
@@ -62,6 +90,11 @@ class AgentResponse:
     graph_data: dict[str, Any] = field(default_factory=dict)
     vector_data: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
+    # Structured output metadata (populated when response_format is used)
+    drugs_mentioned: list[str] = field(default_factory=list)
+    adverse_events_mentioned: list[str] = field(default_factory=list)
+    confidence: str = ""
+    follow_up_suggestions: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -95,6 +128,7 @@ def _build_agent():
         model=llm,
         tools=ALL_TOOLS,
         prompt=SYSTEM_PROMPT,
+        response_format=StructuredResponse,
         checkpointer=_checkpointer,
     )
 
@@ -240,20 +274,32 @@ def run_agent(question: str, thread_id: str | None = None) -> AgentResponse:
                     }
                 )
 
-        # Last message is the final answer
-        messages = result.get("messages", [])
-        raw_content = messages[-1].content if messages else ""
+        # Extract structured response if available (from response_format)
+        structured = result.get("structured_response")
+        drugs_mentioned: list[str] = []
+        ae_mentioned: list[str] = []
+        confidence = ""
+        follow_ups: list[str] = []
 
-        # Gemini 2.5 Flash may return content as a list of blocks
-        # (e.g. [{"type": "text", "text": "..."}, ...]) instead of a string
-        if isinstance(raw_content, list):
-            answer = "\n".join(
-                block.get("text", "") if isinstance(block, dict) else str(block)
-                for block in raw_content
-                if not (isinstance(block, dict) and block.get("type") == "thinking")
-            ).strip()
+        if structured and isinstance(structured, StructuredResponse):
+            answer = structured.answer
+            drugs_mentioned = structured.drugs_mentioned
+            ae_mentioned = structured.adverse_events_mentioned
+            confidence = structured.confidence
+            follow_ups = structured.follow_up_suggestions
         else:
-            answer = str(raw_content)
+            # Fallback: extract from last message
+            messages = result.get("messages", [])
+            raw_content = messages[-1].content if messages else ""
+
+            if isinstance(raw_content, list):
+                answer = "\n".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in raw_content
+                    if not (isinstance(block, dict) and block.get("type") == "thinking")
+                ).strip()
+            else:
+                answer = str(raw_content)
 
         logger.info(
             "Agent completed: {} tool calls, answer length={}",
@@ -270,6 +316,10 @@ def run_agent(question: str, thread_id: str | None = None) -> AgentResponse:
             tool_results=tool_results,
             graph_data=graph_data,
             vector_data=vector_data,
+            drugs_mentioned=drugs_mentioned,
+            adverse_events_mentioned=ae_mentioned,
+            confidence=confidence,
+            follow_up_suggestions=follow_ups,
         )
 
         # Cache successful stateless responses only
