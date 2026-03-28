@@ -26,7 +26,7 @@ class TestToolDefinitions:
     """Verify tools are correctly defined for the agent."""
 
     def test_all_tools_count(self):
-        assert len(ALL_TOOLS) == 6
+        assert len(ALL_TOOLS) == 9
 
     def test_tools_have_names(self):
         names = {t.name for t in ALL_TOOLS}
@@ -36,6 +36,9 @@ class TestToolDefinitions:
         assert "list_drug_interactions" in names
         assert "search_drugs_by_name" in names
         assert "search_adverse_events" in names
+        assert "get_drug_outcomes" in names
+        assert "compare_drugs" in names
+        assert "find_drugs_by_category" in names
 
     def test_tools_have_descriptions(self):
         for tool in ALL_TOOLS:
@@ -193,6 +196,90 @@ class TestToolExecution:
 
         result = search_drugs_by_name.invoke({"query": "aspir"})
         assert "ASPIRIN" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drug_outcomes")
+    def test_get_drug_outcomes_found(self, mock_outcomes):
+        mock_outcomes.return_value = [
+            {"outcome_code": "HO", "outcome_description": "Hospitalization", "report_count": 200},
+            {"outcome_code": "DE", "outcome_description": "Death", "report_count": 50},
+        ]
+
+        from pharmagraphrag.agent.tools import get_drug_outcomes
+
+        result = get_drug_outcomes.invoke({"drug_name": "warfarin"})
+        assert "Hospitalization" in result
+        assert "200" in result
+        assert "Death" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drug_outcomes")
+    def test_get_drug_outcomes_empty(self, mock_outcomes):
+        mock_outcomes.return_value = []
+
+        from pharmagraphrag.agent.tools import get_drug_outcomes
+
+        result = get_drug_outcomes.invoke({"drug_name": "UNKNOWN"})
+        assert "No outcome data" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drug_full_context")
+    def test_compare_drugs_both_found(self, mock_ctx):
+        mock_ctx.side_effect = [
+            {
+                "drug_info": {"name": "ASPIRIN"},
+                "adverse_events": [{"adverse_event": "NAUSEA", "report_count": 100}],
+                "outcomes": [{"outcome_code": "HO", "outcome_description": "Hospitalization", "report_count": 50}],
+                "interactions": [],
+                "categories": ["NSAID"],
+            },
+            {
+                "drug_info": {"name": "IBUPROFEN"},
+                "adverse_events": [{"adverse_event": "HEADACHE", "report_count": 80}],
+                "outcomes": [],
+                "interactions": [],
+                "categories": ["NSAID"],
+            },
+        ]
+
+        from pharmagraphrag.agent.tools import compare_drugs
+
+        result = compare_drugs.invoke({"drug_name_1": "aspirin", "drug_name_2": "ibuprofen"})
+        assert "ASPIRIN" in result
+        assert "IBUPROFEN" in result
+        assert "NAUSEA" in result
+        assert "HEADACHE" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drug_full_context")
+    def test_compare_drugs_one_not_found(self, mock_ctx):
+        mock_ctx.side_effect = [
+            {"drug_info": {"name": "ASPIRIN"}, "adverse_events": [], "outcomes": [], "interactions": [], "categories": []},
+            {},
+        ]
+
+        from pharmagraphrag.agent.tools import compare_drugs
+
+        result = compare_drugs.invoke({"drug_name_1": "aspirin", "drug_name_2": "FAKE"})
+        assert "not found" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drugs_by_category")
+    def test_find_drugs_by_category_found(self, mock_cat):
+        mock_cat.return_value = [
+            {"drug_name": "ASPIRIN", "category": "NSAID"},
+            {"drug_name": "IBUPROFEN", "category": "NSAID"},
+        ]
+
+        from pharmagraphrag.agent.tools import find_drugs_by_category
+
+        result = find_drugs_by_category.invoke({"category": "nsaid"})
+        assert "ASPIRIN" in result
+        assert "IBUPROFEN" in result
+
+    @patch("pharmagraphrag.agent.tools.queries.get_drugs_by_category")
+    def test_find_drugs_by_category_empty(self, mock_cat):
+        mock_cat.return_value = []
+
+        from pharmagraphrag.agent.tools import find_drugs_by_category
+
+        result = find_drugs_by_category.invoke({"category": "XYZNOTFOUND"})
+        assert "No drugs found" in result
 
 
 # ===========================================================================

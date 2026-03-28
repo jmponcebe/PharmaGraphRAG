@@ -153,6 +153,113 @@ def search_adverse_events(query: str, limit: int = 10) -> str:
     return "\n".join(lines)
 
 
+@tool
+def get_drug_outcomes(drug_name: str) -> str:
+    """Get patient outcomes (hospitalization, death, disability, etc.) associated with a drug.
+
+    Returns outcomes from FAERS reports ranked by frequency. Useful for
+    assessing drug safety severity.
+
+    Args:
+        drug_name: Drug name (e.g. "WARFARIN", "METFORMIN").
+    """
+    outcomes = queries.get_drug_outcomes(drug_name.upper())
+    if not outcomes:
+        return f"No outcome data found for '{drug_name}'."
+    lines = [f"Patient outcomes for {drug_name.upper()}:"]
+    for o in outcomes:
+        desc = o.get("outcome_description", o.get("outcome_code", "unknown"))
+        code = o.get("outcome_code", "")
+        count = o.get("report_count", 0)
+        lines.append(f"  - {desc} ({code}): {count} reports")
+    return "\n".join(lines)
+
+
+@tool
+def compare_drugs(drug_name_1: str, drug_name_2: str) -> str:
+    """Compare two drugs side-by-side: adverse events, outcomes, interactions, and categories.
+
+    Useful when the user asks which drug is safer, or wants to compare
+    side effect profiles between alternatives.
+
+    Args:
+        drug_name_1: First drug name (e.g. "ASPIRIN").
+        drug_name_2: Second drug name (e.g. "IBUPROFEN").
+    """
+    ctx1 = queries.get_drug_full_context(drug_name_1.upper())
+    ctx2 = queries.get_drug_full_context(drug_name_2.upper())
+
+    if not ctx1 or not ctx1.get("drug_info"):
+        return f"Drug '{drug_name_1}' not found in the knowledge graph."
+    if not ctx2 or not ctx2.get("drug_info"):
+        return f"Drug '{drug_name_2}' not found in the knowledge graph."
+
+    parts = []
+
+    # Header
+    parts.append(f"=== Comparison: {drug_name_1.upper()} vs {drug_name_2.upper()} ===\n")
+
+    # Categories
+    cat1 = ctx1.get("categories", [])
+    cat2 = ctx2.get("categories", [])
+    parts.append(f"{drug_name_1.upper()} categories: {', '.join(cat1) if cat1 else 'N/A'}")
+    parts.append(f"{drug_name_2.upper()} categories: {', '.join(cat2) if cat2 else 'N/A'}\n")
+
+    # Top adverse events
+    parts.append("Top adverse events:")
+    for name, ctx in [(drug_name_1.upper(), ctx1), (drug_name_2.upper(), ctx2)]:
+        events = ctx.get("adverse_events", [])[:10]
+        parts.append(f"  {name}:")
+        for e in events:
+            parts.append(f"    - {e['adverse_event']}: {e['report_count']} reports")
+        if not events:
+            parts.append("    (none)")
+
+    # Outcomes
+    parts.append("\nPatient outcomes:")
+    for name, ctx in [(drug_name_1.upper(), ctx1), (drug_name_2.upper(), ctx2)]:
+        outcomes = ctx.get("outcomes", [])
+        parts.append(f"  {name}:")
+        for o in outcomes:
+            desc = o.get("outcome_description", o.get("outcome_code", ""))
+            parts.append(f"    - {desc}: {o['report_count']} reports")
+        if not outcomes:
+            parts.append("    (none)")
+
+    # Interactions between the two
+    ix1 = ctx1.get("interactions", [])
+    mutual = [i for i in ix1 if i.get("interacting_drug", "").upper() == drug_name_2.upper()]
+    if mutual:
+        parts.append(f"\nDirect interaction: {drug_name_1.upper()} ↔ {drug_name_2.upper()}")
+        for i in mutual:
+            desc = i.get("description", "No description")
+            parts.append(f"  {desc[:300]}")
+    else:
+        parts.append(f"\nNo direct interaction found between {drug_name_1.upper()} and {drug_name_2.upper()}.")
+
+    return "\n".join(parts)
+
+
+@tool
+def find_drugs_by_category(category: str, limit: int = 15) -> str:
+    """Find all drugs belonging to a pharmacologic category.
+
+    Useful when the user asks about drug classes (e.g. "NSAIDs",
+    "beta blockers", "statins").
+
+    Args:
+        category: Category name or partial match (e.g. "NSAID", "STATIN").
+        limit: Max drugs to return (default 15).
+    """
+    results = queries.get_drugs_by_category(category.upper(), limit=limit)
+    if not results:
+        return f"No drugs found in category matching '{category}'."
+    lines = [f"Drugs in category matching '{category}':"]
+    for r in results:
+        lines.append(f"  - {r['drug_name']} (category: {r['category']})")
+    return "\n".join(lines)
+
+
 # All tools for the agent
 ALL_TOOLS = [
     search_drug_info,
@@ -161,4 +268,7 @@ ALL_TOOLS = [
     list_drug_interactions,
     search_drugs_by_name,
     search_adverse_events,
+    get_drug_outcomes,
+    compare_drugs,
+    find_drugs_by_category,
 ]

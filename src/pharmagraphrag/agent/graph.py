@@ -29,6 +29,9 @@ Your tools:
 - search_drug_labels: semantic search over drug label text
 - list_drug_interactions: get drug-drug interactions
 - search_drugs_by_name: fuzzy search for drug names
+- get_drug_outcomes: get patient outcomes (hospitalization, death, etc.) for a drug
+- compare_drugs: compare two drugs side-by-side (adverse events, outcomes, interactions)
+- find_drugs_by_category: find drugs belonging to a pharmacologic category (e.g. NSAIDs, statins)
 
 Guidelines:
 - Use one or more tools to gather relevant information before answering.
@@ -38,10 +41,13 @@ Guidelines:
   MedDRA name, then use find_drugs_for_adverse_event with the exact name.
 - Similarly, drug names should be searched with search_drugs_by_name when unsure
   of the exact spelling or standardized name.
+- When comparing drugs, use compare_drugs for a structured comparison.
 - Cite specific drugs, adverse events, and report counts from the tool results.
 - If tool results are insufficient, say so explicitly.
 - Be precise with medical terminology.
 - Structure your answer clearly with sections if appropriate.
+- You have conversation memory: you can reference previous questions and answers
+  in the same session. Use this to provide contextual follow-up answers.
 - This data is for educational purposes only, not clinical decisions.
 """
 
@@ -125,7 +131,7 @@ def _collect_structured_data(
         name = tc.get("tool", "")
         args = tc.get("args", {})
 
-        if name in ("search_drug_info", "list_drug_interactions"):
+        if name in ("search_drug_info", "list_drug_interactions", "get_drug_outcomes"):
             drug = args.get("drug_name", "").upper()
             if drug and drug not in seen_drugs:
                 try:
@@ -135,6 +141,18 @@ def _collect_structured_data(
                         seen_drugs.add(drug)
                 except Exception:
                     pass
+
+        elif name == "compare_drugs":
+            for key in ("drug_name_1", "drug_name_2"):
+                drug = args.get(key, "").upper()
+                if drug and drug not in seen_drugs:
+                    try:
+                        ctx = queries.get_drug_full_context(drug)
+                        if ctx and ctx.get("drug_info"):
+                            graph_data[drug] = ctx
+                            seen_drugs.add(drug)
+                    except Exception:
+                        pass
 
         elif name == "search_drug_labels":
             query = args.get("query", "")

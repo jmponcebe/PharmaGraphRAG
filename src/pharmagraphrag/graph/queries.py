@@ -260,6 +260,32 @@ def get_drug_full_context(drug_name: str) -> dict:
     }
 
 
+def get_drugs_by_category(category: str, limit: int = 15) -> list[dict]:
+    """Get drugs belonging to a pharmacologic category.
+
+    Args:
+        category: Category name or partial match (case-insensitive).
+        limit: Maximum number of results.
+
+    Returns:
+        List of dicts with drug_name and category.
+    """
+    driver = _get_driver()
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (d:Drug)-[:BELONGS_TO]->(dc:DrugCategory)
+            WHERE toUpper(dc.name) CONTAINS toUpper($category)
+            RETURN d.name AS drug_name, dc.name AS category
+            ORDER BY d.name
+            LIMIT $limit
+            """,
+            category=category,
+            limit=limit,
+        )
+        return [dict(record) for record in result]
+
+
 def format_graph_context(context: dict) -> str:
     """Format graph context as human-readable text for LLM prompt.
 
