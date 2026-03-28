@@ -97,6 +97,11 @@ class AgentQueryRequest(BaseModel):
         description="Natural-language question for the ReAct agent.",
         examples=["What are the interactions between warfarin and aspirin?"],
     )
+    session_id: str | None = Field(
+        default=None,
+        description="Session ID for conversation memory. Messages within the same session are remembered.",
+        examples=["abc123"],
+    )
 
 
 class ToolCallInfo(BaseModel):

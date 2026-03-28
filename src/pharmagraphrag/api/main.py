@@ -216,7 +216,7 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
     from pharmagraphrag.agent.graph import run_agent
 
     try:
-        result = run_agent(req.question)
+        result = run_agent(req.question, thread_id=req.session_id)
 
         # If the agent hit rate limits, fall back to classic pipeline
         if not result.ok and result.error and "rate limit" in result.error.lower():

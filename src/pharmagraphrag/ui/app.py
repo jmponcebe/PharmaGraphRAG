@@ -222,6 +222,11 @@ def _init_session() -> None:
             "llm_provider": "gemini",
             "agent_mode": False,
         }
+    # Unique session ID for agent conversation memory
+    if "agent_session_id" not in st.session_state:
+        import uuid
+
+        st.session_state.agent_session_id = uuid.uuid4().hex
 
 
 # ---------------------------------------------------------------------------
@@ -454,7 +459,10 @@ def _process_question_agent_api(question: str) -> ChatMessage:
     try:
         resp = req_lib.post(
             f"{base}/agent/query",
-            json={"question": question},
+            json={
+                "question": question,
+                "session_id": st.session_state.get("agent_session_id"),
+            },
             timeout=180,
         )
 
@@ -527,7 +535,10 @@ def _process_question_agent_local(question: str) -> ChatMessage:
     try:
         from pharmagraphrag.agent.graph import run_agent
 
-        result = run_agent(question)
+        result = run_agent(
+            question,
+            thread_id=st.session_state.get("agent_session_id"),
+        )
 
         # Show error as content if no answer was generated
         if result.error and not result.answer:

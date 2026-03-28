@@ -238,6 +238,20 @@ class TestAgentApiModels:
         t = ToolCallInfo(tool="search_drug_info", args={"drug_name": "ASPIRIN"})
         assert t.tool == "search_drug_info"
 
+    def test_agent_query_request_with_session_id(self):
+        """Verify AgentQueryRequest accepts session_id."""
+        from pharmagraphrag.api.models import AgentQueryRequest
+
+        req = AgentQueryRequest(question="test question", session_id="abc-123")
+        assert req.session_id == "abc-123"
+
+    def test_agent_query_request_without_session_id(self):
+        """session_id defaults to None."""
+        from pharmagraphrag.api.models import AgentQueryRequest
+
+        req = AgentQueryRequest(question="test question")
+        assert req.session_id is None
+
 
 # ===========================================================================
 # POST /agent/query endpoint
@@ -280,3 +294,27 @@ class TestAgentEndpoint:
 
         resp = client.post("/agent/query", json={"question": "test question?"})
         assert resp.status_code == 500
+
+    @patch("pharmagraphrag.agent.graph.run_agent")
+    def test_agent_query_with_session_id(self, mock_agent):
+        """Verify session_id is passed as thread_id to run_agent."""
+        mock_agent.return_value = AgentResponse(answer="Answer with memory.")
+
+        resp = client.post(
+            "/agent/query",
+            json={"question": "follow up question", "session_id": "sess-123"},
+        )
+        assert resp.status_code == 200
+        mock_agent.assert_called_once_with("follow up question", thread_id="sess-123")
+
+    @patch("pharmagraphrag.agent.graph.run_agent")
+    def test_agent_query_without_session_id(self, mock_agent):
+        """Without session_id, thread_id should be None."""
+        mock_agent.return_value = AgentResponse(answer="Stateless answer.")
+
+        resp = client.post(
+            "/agent/query",
+            json={"question": "stateless question"},
+        )
+        assert resp.status_code == 200
+        mock_agent.assert_called_once_with("stateless question", thread_id=None)

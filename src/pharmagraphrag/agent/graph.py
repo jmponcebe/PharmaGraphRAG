@@ -11,6 +11,7 @@ from typing import Any
 
 from langchain_core.messages import ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
 
@@ -69,8 +70,12 @@ _response_cache: dict[str, AgentResponse] = {}
 _CACHE_MAX_SIZE = 50
 
 
+# In-memory checkpointer for conversation memory (multi-turn)
+_checkpointer = MemorySaver()
+
+
 def _build_agent():
-    """Create the LangGraph ReAct agent."""
+    """Create the LangGraph ReAct agent with conversation memory."""
     settings = get_settings()
 
     llm = ChatGoogleGenerativeAI(
@@ -84,6 +89,7 @@ def _build_agent():
         model=llm,
         tools=ALL_TOOLS,
         prompt=SYSTEM_PROMPT,
+        checkpointer=_checkpointer,
     )
 
 
@@ -168,25 +174,33 @@ def _collect_structured_data(
     return graph_data, vector_data
 
 
-def run_agent(question: str) -> AgentResponse:
+def run_agent(question: str, thread_id: str | None = None) -> AgentResponse:
     """Run the ReAct agent on a user question.
 
     Args:
         question: The user's natural language question.
+        thread_id: Optional session ID for conversation memory. When provided,
+            the agent remembers previous messages in the same thread.
 
     Returns:
         AgentResponse with the answer and tool call history.
     """
-    # Check cache to save RPD quota
+    # Check cache to save RPD quota (only for stateless queries)
     cache_key = question.strip().lower()
-    if cache_key in _response_cache:
+    if not thread_id and cache_key in _response_cache:
         logger.info("Agent cache hit for: '{}'", question[:60])
         return _response_cache[cache_key]
 
     agent = _get_agent()
 
+    # Config with thread_id for checkpointer (conversation memory)
+    config = {"configurable": {"thread_id": thread_id or "default"}}
+
     try:
-        result = agent.invoke({"messages": [("user", question)]})
+        result = agent.invoke(
+            {"messages": [("user", question)]},
+            config=config,
+        )
 
         # Extract tool calls and tool results from message history
         tool_calls = []
@@ -240,8 +254,8 @@ def run_agent(question: str) -> AgentResponse:
             vector_data=vector_data,
         )
 
-        # Cache successful responses
-        if response.ok:
+        # Cache successful stateless responses only
+        if response.ok and not thread_id:
             if len(_response_cache) >= _CACHE_MAX_SIZE:
                 # Evict oldest entry
                 _response_cache.pop(next(iter(_response_cache)))
