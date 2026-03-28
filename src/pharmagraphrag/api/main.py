@@ -238,6 +238,41 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
 
 
 # ---------------------------------------------------------------------------
+# POST /agent/multi — Multi-agent supervisor
+# ---------------------------------------------------------------------------
+
+
+@app.post("/agent/multi", response_model=AgentQueryResponse)
+def multi_agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
+    """Process a question using the multi-agent supervisor system.
+
+    A supervisor agent delegates to specialized sub-agents (Drug Expert,
+    Safety Analyst, Literature Researcher) and synthesizes their findings.
+    """
+    from pharmagraphrag.agent.multi import run_multi_agent
+
+    try:
+        result = run_multi_agent(req.question, thread_id=req.session_id)
+
+        if not result.ok and result.error and "rate limit" in result.error.lower():
+            logger.info("Multi-agent rate-limited, falling back to classic pipeline")
+            return _agent_fallback_to_classic(req.question)
+
+        return AgentQueryResponse(
+            question=req.question,
+            answer=result.answer,
+            tool_calls=[ToolCallInfo(**tc) for tc in result.tool_calls],
+            tool_results=[ToolResultInfo(**tr) for tr in result.tool_results],
+            graph_data=result.graph_data,
+            vector_data=result.vector_data,
+            error=result.error,
+        )
+    except Exception as exc:
+        logger.error("Multi-agent query failed: {}", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Agent → Classic fallback
 # ---------------------------------------------------------------------------
 

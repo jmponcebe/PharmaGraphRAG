@@ -405,3 +405,130 @@ class TestAgentEndpoint:
         )
         assert resp.status_code == 200
         mock_agent.assert_called_once_with("stateless question", thread_id=None)
+
+
+# ===========================================================================
+# Multi-agent supervisor
+# ===========================================================================
+
+
+class TestMultiAgentDefinitions:
+    """Verify multi-agent supervisor tools and prompts."""
+
+    def test_supervisor_tools_count(self):
+        from pharmagraphrag.agent.multi import SUPERVISOR_TOOLS
+
+        assert len(SUPERVISOR_TOOLS) == 3
+
+    def test_supervisor_tool_names(self):
+        from pharmagraphrag.agent.multi import SUPERVISOR_TOOLS
+
+        names = {t.name for t in SUPERVISOR_TOOLS}
+        assert names == {"ask_drug_expert", "ask_safety_analyst", "ask_literature_researcher"}
+
+    def test_sub_agent_tool_assignments(self):
+        from pharmagraphrag.agent.multi import (
+            DRUG_EXPERT_TOOLS,
+            LITERATURE_RESEARCHER_TOOLS,
+            SAFETY_ANALYST_TOOLS,
+        )
+
+        assert len(DRUG_EXPERT_TOOLS) == 4
+        assert len(SAFETY_ANALYST_TOOLS) == 4
+        assert len(LITERATURE_RESEARCHER_TOOLS) == 2
+
+
+class TestCollectStructuredFromResults:
+    """Test the _collect_structured_from_results helper."""
+
+    @patch("pharmagraphrag.graph.queries.get_drug_full_context")
+    def test_extracts_drug_from_drug_prefix(self, mock_ctx):
+        from pharmagraphrag.agent.multi import _collect_structured_from_results
+
+        mock_ctx.return_value = {"drug_info": {"name": "ASPIRIN"}}
+
+        results = [{"tool": "ask_drug_expert", "content": "Drug: ASPIRIN\nSome details."}]
+        graph, vector = _collect_structured_from_results(results)
+
+        assert "ASPIRIN" in graph
+        assert vector == []
+
+    @patch("pharmagraphrag.graph.queries.get_drug_full_context")
+    def test_extracts_drug_from_reports_pattern(self, mock_ctx):
+        from pharmagraphrag.agent.multi import _collect_structured_from_results
+
+        mock_ctx.return_value = {"drug_info": {"name": "WARFARIN"}}
+
+        results = [{"tool": "ask_safety_analyst", "content": "- WARFARIN: 150 reports"}]
+        graph, _vector = _collect_structured_from_results(results)
+
+        assert "WARFARIN" in graph
+
+    @patch("pharmagraphrag.graph.queries.get_drug_full_context")
+    def test_extracts_drugs_from_comparison(self, mock_ctx):
+        from pharmagraphrag.agent.multi import _collect_structured_from_results
+
+        mock_ctx.return_value = {"drug_info": {"name": "test"}}
+
+        results = [
+            {"tool": "ask_safety_analyst", "content": "=== Comparison: ASPIRIN vs IBUPROFEN ==="}
+        ]
+        graph, _vector = _collect_structured_from_results(results)
+
+        assert "ASPIRIN" in graph
+        assert "IBUPROFEN" in graph
+
+    def test_empty_results(self):
+        from pharmagraphrag.agent.multi import _collect_structured_from_results
+
+        graph, vector = _collect_structured_from_results([])
+        assert graph == {}
+        assert vector == []
+
+
+class TestMultiAgentEndpoint:
+    """Test the /agent/multi endpoint with mocked multi-agent."""
+
+    @patch("pharmagraphrag.agent.multi.run_multi_agent")
+    def test_multi_query_success(self, mock_multi):
+        mock_multi.return_value = AgentResponse(
+            answer="The Drug Expert reports that aspirin is an NSAID.",
+            tool_calls=[{"tool": "ask_drug_expert", "args": {"question": "What is aspirin?"}}],
+        )
+
+        resp = client.post("/agent/multi", json={"question": "What is aspirin?"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "NSAID" in data["answer"]
+        assert len(data["tool_calls"]) == 1
+
+    @patch("pharmagraphrag.agent.multi.run_multi_agent")
+    def test_multi_query_error(self, mock_multi):
+        mock_multi.return_value = AgentResponse(error="Sub-agent failed")
+
+        resp = client.post("/agent/multi", json={"question": "test multi question?"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["error"] == "Sub-agent failed"
+
+    @patch("pharmagraphrag.agent.multi.run_multi_agent")
+    def test_multi_query_with_session_id(self, mock_multi):
+        mock_multi.return_value = AgentResponse(answer="Memory answer.")
+
+        resp = client.post(
+            "/agent/multi",
+            json={"question": "follow up about aspirin", "session_id": "multi-sess"},
+        )
+        assert resp.status_code == 200
+        mock_multi.assert_called_once_with("follow up about aspirin", thread_id="multi-sess")
+
+    @patch("pharmagraphrag.agent.multi.run_multi_agent")
+    def test_multi_query_exception(self, mock_multi):
+        mock_multi.side_effect = RuntimeError("supervisor crash")
+
+        resp = client.post("/agent/multi", json={"question": "test crash scenario?"})
+        assert resp.status_code == 500
+
+    def test_multi_query_validation_error(self):
+        resp = client.post("/agent/multi", json={"question": "ab"})
+        assert resp.status_code == 422

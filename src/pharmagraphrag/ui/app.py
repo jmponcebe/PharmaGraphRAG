@@ -267,8 +267,25 @@ def _render_sidebar() -> None:
         help="Use a LangGraph ReAct agent that autonomously decides which tools to call.",
     )
 
-    mode_class = "agent" if s["agent_mode"] else "classic"
-    mode_text = "🤖 Agent · LLM chooses tools" if s["agent_mode"] else "⚡ Classic · Pipeline"
+    if s["agent_mode"]:
+        s["multi_agent"] = st.sidebar.toggle(
+            "🧠 Multi-Agent",
+            value=s.get("multi_agent", False),
+            key="tg_multi",
+            help="Supervisor delegates to specialized sub-agents: Drug Expert, Safety Analyst, Literature Researcher.",
+        )
+    else:
+        s["multi_agent"] = False
+
+    if not s["agent_mode"]:
+        mode_class = "classic"
+        mode_text = "⚡ Classic · Pipeline"
+    elif s["multi_agent"]:
+        mode_class = "agent"
+        mode_text = "🧠 Multi-Agent · 3 experts"
+    else:
+        mode_class = "agent"
+        mode_text = "🤖 Agent · LLM chooses tools"
     st.sidebar.markdown(
         f'<div class="mode-indicator {mode_class}">{mode_text}</div>',
         unsafe_allow_html=True,
@@ -333,12 +350,17 @@ def _process_question(question: str) -> ChatMessage:
         ChatMessage with the assistant's response.
     """
     agent_mode = st.session_state.settings.get("agent_mode", False)
+    multi_agent = st.session_state.settings.get("multi_agent", False)
 
     if API_URL:
+        if agent_mode and multi_agent:
+            return _process_question_multi_api(question)
         if agent_mode:
             return _process_question_agent_api(question)
         return _process_question_api(question)
 
+    if agent_mode and multi_agent:
+        return _process_question_multi_local(question)
     if agent_mode:
         return _process_question_agent_local(question)
     return _process_question_local(question)
@@ -523,6 +545,129 @@ def _process_question_agent_api(question: str) -> ChatMessage:
         return ChatMessage(
             role="assistant",
             content=f"❌ Error calling agent API: {exc}",
+            error=str(exc),
+        )
+
+
+# -- Multi-agent mode (API) -------------------------------------------------
+
+
+def _process_question_multi_api(question: str) -> ChatMessage:
+    """Call the multi-agent endpoint on the remote API."""
+    import requests as req_lib
+
+    base = API_URL.rstrip("/")  # type: ignore[union-attr]
+
+    try:
+        resp = req_lib.post(
+            f"{base}/agent/multi",
+            json={
+                "question": question,
+                "session_id": st.session_state.get("agent_session_id"),
+            },
+            timeout=180,
+        )
+
+        if resp.status_code != 200:
+            return ChatMessage(
+                role="assistant",
+                content=f"❌ Multi-agent API error ({resp.status_code}): {resp.text[:300]}",
+                error=resp.text[:300],
+            )
+
+        data = resp.json()
+        tool_calls = data.get("tool_calls", [])
+        tool_results = data.get("tool_results", [])
+        answer = data.get("answer", "")
+        error = data.get("error")
+
+        if error and not answer:
+            return ChatMessage(
+                role="assistant",
+                content=f"⚠️ {error}",
+                error=error,
+                llm_provider="multi-agent",
+                llm_model="gemini-2.5-flash-lite",
+            )
+
+        graph_raw = data.get("graph_data", {})
+        vector_raw = data.get("vector_data", [])
+        drugs = list(graph_raw.keys())
+
+        return ChatMessage(
+            role="assistant",
+            content=answer,
+            sources_graph=graph_raw,
+            sources_vector=vector_raw,
+            drugs_extracted=drugs,
+            drugs_found=drugs,
+            llm_provider="multi-agent",
+            llm_model="gemini-2.5-flash-lite",
+            error=error,
+            agent_tool_calls=tool_calls,
+            agent_tool_results=tool_results,
+        )
+
+    except req_lib.exceptions.ReadTimeout:
+        return ChatMessage(
+            role="assistant",
+            content="⏳ Multi-agent request timed out. Please try again.",
+            error="Read timeout",
+        )
+    except Exception as exc:
+        logger.error("Multi-agent API call failed: {}", exc)
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Error calling multi-agent API: {exc}",
+            error=str(exc),
+        )
+
+
+# -- Multi-agent mode (local) -----------------------------------------------
+
+
+def _process_question_multi_local(question: str) -> ChatMessage:
+    """Run the multi-agent supervisor locally."""
+    try:
+        from pharmagraphrag.agent.multi import run_multi_agent
+
+        result = run_multi_agent(
+            question,
+            thread_id=st.session_state.get("agent_session_id"),
+        )
+
+        if result.error and not result.answer:
+            return ChatMessage(
+                role="assistant",
+                content=f"⚠️ {result.error}",
+                error=result.error,
+                llm_provider="multi-agent",
+                llm_model="gemini-2.5-flash-lite",
+            )
+
+        tc_list = result.tool_calls if result.tool_calls else []
+        tr_list = result.tool_results if result.tool_results else []
+        drugs = list(result.graph_data.keys())
+
+        return ChatMessage(
+            role="assistant",
+            content=result.answer,
+            sources_graph=result.graph_data,
+            sources_vector=result.vector_data,
+            drugs_extracted=drugs,
+            drugs_found=drugs,
+            llm_provider="multi-agent",
+            llm_model="gemini-2.5-flash-lite",
+            error=result.error,
+            agent_tool_calls=tc_list,
+            agent_tool_results=tr_list,
+        )
+
+    except Exception as exc:
+        logger.error("Multi-agent local execution failed: {}", exc)
+        return ChatMessage(
+            role="assistant",
+            content=f"❌ Multi-agent error: {exc}",
             error=str(exc),
         )
 
