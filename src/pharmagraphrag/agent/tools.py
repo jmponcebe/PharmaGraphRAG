@@ -235,7 +235,9 @@ def compare_drugs(drug_name_1: str, drug_name_2: str) -> str:
             desc = i.get("description", "No description")
             parts.append(f"  {desc[:300]}")
     else:
-        parts.append(f"\nNo direct interaction found between {drug_name_1.upper()} and {drug_name_2.upper()}.")
+        parts.append(
+            f"\nNo direct interaction found between {drug_name_1.upper()} and {drug_name_2.upper()}."
+        )
 
     return "\n".join(parts)
 

@@ -226,7 +226,13 @@ class TestToolExecution:
             {
                 "drug_info": {"name": "ASPIRIN"},
                 "adverse_events": [{"adverse_event": "NAUSEA", "report_count": 100}],
-                "outcomes": [{"outcome_code": "HO", "outcome_description": "Hospitalization", "report_count": 50}],
+                "outcomes": [
+                    {
+                        "outcome_code": "HO",
+                        "outcome_description": "Hospitalization",
+                        "report_count": 50,
+                    }
+                ],
                 "interactions": [],
                 "categories": ["NSAID"],
             },
@@ -250,7 +256,13 @@ class TestToolExecution:
     @patch("pharmagraphrag.agent.tools.queries.get_drug_full_context")
     def test_compare_drugs_one_not_found(self, mock_ctx):
         mock_ctx.side_effect = [
-            {"drug_info": {"name": "ASPIRIN"}, "adverse_events": [], "outcomes": [], "interactions": [], "categories": []},
+            {
+                "drug_info": {"name": "ASPIRIN"},
+                "adverse_events": [],
+                "outcomes": [],
+                "interactions": [],
+                "categories": [],
+            },
             {},
         ]
 

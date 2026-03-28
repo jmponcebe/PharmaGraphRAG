@@ -138,6 +138,7 @@ def _run_sub_agent(name: str, question: str) -> str:
 # Supervisor tools (each wraps a sub-agent call)
 # ---------------------------------------------------------------------------
 
+
 @tool
 def ask_drug_expert(question: str) -> str:
     """Delegate a question to the Drug Expert sub-agent.
@@ -261,15 +262,19 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
         for msg in result.get("messages", []):
             if hasattr(msg, "tool_calls") and msg.tool_calls:
                 for tc in msg.tool_calls:
-                    tool_calls.append({
-                        "tool": tc.get("name", ""),
-                        "args": tc.get("args", {}),
-                    })
+                    tool_calls.append(
+                        {
+                            "tool": tc.get("name", ""),
+                            "args": tc.get("args", {}),
+                        }
+                    )
             if isinstance(msg, ToolMessage):
-                tool_results.append({
-                    "tool": msg.name or "",
-                    "content": msg.content,
-                })
+                tool_results.append(
+                    {
+                        "tool": msg.name or "",
+                        "content": msg.content,
+                    }
+                )
 
         # Final answer
         messages = result.get("messages", [])
