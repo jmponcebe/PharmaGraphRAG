@@ -3,7 +3,7 @@
 [![CI](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml)
 [![CD](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-172%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-198%20passing-brightgreen.svg)](#testing)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-pharmagraphrag.streamlit.app-FF4B4B.svg)](https://pharmagraphrag.streamlit.app)
@@ -68,9 +68,9 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 ### Key Highlights
 
 - **Dual retrieval**: structured graph queries (Neo4j) + semantic vector search (ChromaDB) merged into a single LLM prompt
-- **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (graph search, vector search, drug lookup, adverse event search) based on the question. Includes response caching and graceful fallback to classic pipeline
+- **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (9 tools: drug info, adverse events, interactions, labels, drug search, event search, outcomes, comparison, categories) based on the question. Includes conversation memory, structured output (confidence + follow-ups), multi-agent supervisor with 3 specialized experts, response caching and graceful fallback to classic pipeline
 - **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
-- **172 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
+- **198 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
 - **One-click Codespaces**: try it instantly from your browser
 
@@ -79,7 +79,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 > *"What are the side effects of ibuprofen?"* · *"Does metformin interact with other drugs?"* · *"Compare the safety profiles of aspirin and clopidogrel"* · *"What drugs cause liver damage?"*
 
 <details>
-<summary><strong>Component Status</strong> — all modules complete, 172 tests passing</summary>
+<summary><strong>Component Status</strong> — all modules complete, 198 tests passing</summary>
 
 | Component | Status | Details |
 |---|---|---|
@@ -88,12 +88,12 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | Vector Store | ✅ Complete | 5,654 text chunks, 384-dim embeddings, cosine similarity search |
 | Query Engine | ✅ Complete | Entity extraction (exact + fuzzy), dual retrieval, prompt assembly |
 | LLM Integration | ✅ Complete | Gemini API + Ollama with automatic fallback |
-| REST API | ✅ Complete | FastAPI: POST /query, GET /drug/{name}, GET /health |
+| REST API | ✅ Complete | FastAPI: POST /query, POST /agent/query, POST /agent/multi, GET /drug/{name}, GET /health |
 | Chat UI | ✅ Complete | Streamlit: chat, graph visualization, sources panel, drug explorer |
 | Docker Compose | ✅ Complete | Neo4j + API + UI + Ollama (optional profile) |
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
-| Agent Mode | ✅ Complete | LangGraph ReAct agent with 6 tools, response cache, graceful fallback |
-| Tests | ✅ 172 passing | Data (27) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (25) |
+| Agent Mode | ✅ Complete | LangGraph ReAct agent with 9 tools, conversation memory, structured output, multi-agent supervisor |
+| Tests | ✅ 198 passing | Data (27) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (51) |
 
 </details>
 
@@ -209,10 +209,11 @@ graph TB
 In Agent Mode, the LLM autonomously decides which tools to call:
 
 1. **Reasoning** — The agent analyzes the question and selects tools
-2. **Tool execution** — Calls graph/vector services (6 tools: drug info, adverse events, interactions, labels, drug search, event search)
-3. **Iteration** — May call multiple tools in sequence, refining results
-4. **Answer synthesis** — Combines all tool results into a coherent response
-5. **Fallback** — If rate-limited, auto-falls back to classic pipeline; if LLM fails entirely, returns raw graph/vector data
+2. **Tool execution** — Calls graph/vector services (9 tools: drug info, adverse events, interactions, labels, drug search, event search, outcomes, comparison, categories)
+3. **Iteration** — May call multiple tools in sequence, refining results. Conversation memory persists across questions
+4. **Structured output** — Returns answer with confidence level (high/medium/low), drugs and adverse events mentioned, and follow-up suggestions
+5. **Multi-agent mode** — Optional supervisor delegates to 3 specialized sub-agents (Drug Expert, Safety Analyst, Literature Researcher)
+6. **Fallback** — If rate-limited, auto-falls back to classic pipeline; if LLM fails entirely, returns raw graph/vector data
 
 ## Tech Stack
 
@@ -231,7 +232,7 @@ In Agent Mode, the LLM autonomously decides which tools to call:
 | UI | Streamlit + streamlit-agraph (graph visualization) |
 | Containers | Docker Compose (multi-stage, non-root, healthchecks) |
 | CI/CD | GitHub Actions (CI: lint + test matrix; CD: v* tags → Cloud Build → Cloud Run) |
-| Testing | pytest (172 tests, mocked services) |
+| Testing | pytest (198 tests, mocked services) |
 | Linting | ruff (check + format) |
 
 ## Data Sources
@@ -396,7 +397,7 @@ gcloud run deploy pharmagraphrag-api --image gcr.io/<project>/pharmagraphrag-api
 ### Testing
 
 ```bash
-uv run pytest               # Run all 172 tests
+uv run pytest               # Run all 198 tests
 uv run pytest -v             # Verbose output
 uv run pytest tests/test_engine.py  # Specific module
 ```
@@ -435,12 +436,13 @@ src/pharmagraphrag/
 │   ├── retriever.py            # Dual retrieval (Neo4j graph + ChromaDB vector)
 │   └── query_engine.py         # Orchestrator: extract → retrieve → prompt assembly
 ├── agent/                  # LangGraph ReAct agent
-│   ├── tools.py                # LangChain tools wrapping graph/vector services
-│   └── graph.py                # ReAct agent (create_react_agent + Gemini)
+│   ├── tools.py                # 9 LangChain tools wrapping graph/vector services
+│   ├── graph.py                # ReAct agent (create_react_agent + Gemini + MemorySaver)
+│   └── multi.py                # Multi-agent supervisor with 3 specialized sub-agents
 ├── llm/                    # LLM integration
 │   └── client.py               # Unified client: Gemini + Ollama with fallback
 ├── api/                    # REST API
-│   ├── main.py                 # FastAPI app (POST /query, GET /drug, GET /health)
+│   ├── main.py                 # FastAPI app (POST /query, POST /agent/query, POST /agent/multi, GET /drug, GET /health)
 │   └── models.py               # Pydantic v2 request/response schemas
 └── ui/                     # Chat interface
     ├── app.py                  # Streamlit app (chat, sidebar, settings)

@@ -21,10 +21,10 @@ All three development phases are finished. The system is fully operational end-t
 | LLM Integration | Complete | `src/pharmagraphrag/llm/` |
 | REST API | Complete | `src/pharmagraphrag/api/` |
 | Streamlit UI | Complete | `src/pharmagraphrag/ui/` |
-| Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct) |
+| Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct + multi-agent supervisor) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
-| Tests | 172 passing | `tests/` |
+| Tests | 198 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -72,11 +72,18 @@ FDA FAERS (CSV) + DailyMed (API)
 #### Agent Mode (`POST /agent/query`)
 1. **User question** arrives at the LangGraph ReAct agent (`agent/graph.py`).
 2. **Tool selection**: the LLM (Gemini 2.5 Flash via `langchain-google-genai`) autonomously decides which tools to call based on the question.
-3. **Tool execution**: 6 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`, `search_adverse_events`. Each wraps existing graph/vector services. `find_drugs_for_adverse_event` includes fuzzy fallback: if exact MedDRA term not found, suggests similar events via substring search.
-4. **Iterative reasoning**: the agent can call multiple tools in sequence, refining its understanding.
-5. **Final answer**: the agent synthesizes all tool results into a coherent response.
+3. **Tool execution**: 9 tools available (`agent/tools.py`): `search_drug_info`, `find_drugs_for_adverse_event`, `search_drug_labels`, `list_drug_interactions`, `search_drugs_by_name`, `search_adverse_events`, `get_drug_outcomes`, `compare_drugs`, `find_drugs_by_category`. Each wraps existing graph/vector services. `find_drugs_for_adverse_event` includes fuzzy fallback: if exact MedDRA term not found, suggests similar events via substring search.
+4. **Iterative reasoning**: the agent can call multiple tools in sequence, refining its understanding. Has conversation memory via LangGraph `MemorySaver` checkpointer.
+5. **Structured output**: the agent returns a `StructuredResponse` (Pydantic model) with answer, drugs_mentioned, adverse_events_mentioned, confidence level, and follow-up suggestions.
 6. **Structured data collection** (`_collect_structured_data`): after agent execution, re-fetches structured graph/vector data based on which tools were called (same Neo4j/ChromaDB connections, no extra HTTP calls).
-7. **Response**: returns `AgentQueryResponse` with answer, tool calls, tool results, `graph_data` (structured Neo4j context per drug), and `vector_data` (ChromaDB search results). UI renders Sources + Graph tabs identically to classic mode.
+7. **Response**: returns `AgentQueryResponse` with answer, tool calls, tool results, `graph_data` (structured Neo4j context per drug), `vector_data` (ChromaDB search results), structured metadata (drugs, AEs, confidence, follow-ups). UI renders Sources + Graph tabs identically to classic mode.
+
+#### Multi-Agent Mode (`POST /agent/multi`)
+1. **User question** arrives at the supervisor agent (`agent/multi.py`).
+2. **Delegation**: supervisor has 3 tool-wrappers: `ask_drug_expert`, `ask_safety_analyst`, `ask_literature_researcher`.
+3. **Sub-agent execution**: each sub-agent is a `create_react_agent` with a specialized prompt and tool subset (Drug Expert: 4 tools, Safety Analyst: 4 tools, Literature Researcher: 2 tools).
+4. **Synthesis**: supervisor collects sub-agent responses and generates a final coherent answer.
+5. **Response**: same `AgentQueryResponse` schema as single-agent mode.
 
 ## Tech Stack
 - **Language**: Python 3.13 (runtime), compatible with 3.11+
@@ -92,7 +99,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (ci.yml: lint+test on push; deploy.yml: CD on v* tags via Cloud Build)
-- **Testing**: pytest (172 tests passing)
+- **Testing**: pytest (198 tests passing)
 - **CI/CD**: GitHub Actions (ci.yml: lint + test matrix 3.11/3.13; deploy.yml: v* tags → Cloud Build → Cloud Run)
 - **Cloud Build**: Google Cloud Build (cloudbuild.yaml) — downloads ChromaDB from GCS, builds Docker, deploys
 - **Object Storage**: Google Cloud Storage (gs://pharmagraphrag-data for ChromaDB snapshots)
@@ -152,11 +159,12 @@ PharmaGraphRAG/
 |   |   +-- client.py              # Unified LLM client (Gemini + Ollama + fallback)
 |   +-- agent/
 |   |   +-- __init__.py
-|   |   +-- tools.py               # LangChain tools wrapping graph/vector services
+|   |   +-- tools.py               # 9 LangChain tools wrapping graph/vector services
 |   |   +-- graph.py               # LangGraph ReAct agent (create_react_agent + Gemini)
+|   |   +-- multi.py               # Multi-agent supervisor with 3 specialized sub-agents
 |   +-- api/
 |   |   +-- __init__.py
-|   |   +-- main.py                # FastAPI app: POST /query, POST /agent/query, GET /drug/{name}, GET /health
+|   |   +-- main.py                # FastAPI app: POST /query, POST /agent/query, POST /agent/multi, GET /drug/{name}, GET /health
 |   |   +-- models.py              # Pydantic v2 request/response schemas (incl. AgentQueryRequest/Response)
 |   +-- ui/
 |       +-- __init__.py
@@ -172,7 +180,7 @@ PharmaGraphRAG/
 |   +-- test_llm.py                # 14 tests (Gemini + Ollama + fallback, mocked)
 |   +-- test_api.py                # 18 tests (FastAPI endpoints, TestClient, drug search, fallback)
 |   +-- test_ui.py                 # 14 tests (Streamlit components + session state)
-|   +-- test_agent.py              # 25 tests (Tools, AgentResponse model, /agent/query endpoint)
+|   +-- test_agent.py              # 51 tests (9 tools, AgentResponse, StructuredResponse, multi-agent, endpoints)
 +-- scripts/
 |   +-- load_vectorstore.py        # One-off: populate ChromaDB
 |   +-- validate_search.py         # One-off: test semantic search queries
@@ -273,7 +281,7 @@ PharmaGraphRAG/
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 
-### Testing (172 tests)
+### Testing (198 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -291,8 +299,8 @@ PharmaGraphRAG/
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
 | test_api.py | 18 | FastAPI endpoints, TestClient, drug search, fallback |
 | test_ui.py | 14 | Streamlit components, session state |
-| test_agent.py | 25 | Tools, AgentResponse model, /agent/query endpoint |
-| **Total** | **172** | |
+| test_agent.py | 51 | 9 tools, AgentResponse, StructuredResponse, multi-agent supervisor, endpoints |
+| **Total** | **198** | |
 
 ## Key Design Decisions
 
