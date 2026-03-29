@@ -493,7 +493,7 @@ class TestMultiAgentDefinitions:
         )
 
         assert len(DRUG_EXPERT_TOOLS) == 4
-        assert len(SAFETY_ANALYST_TOOLS) == 4
+        assert len(SAFETY_ANALYST_TOOLS) == 5
         assert len(LITERATURE_RESEARCHER_TOOLS) == 2
 
 

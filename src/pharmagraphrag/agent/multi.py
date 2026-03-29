@@ -61,6 +61,7 @@ When comparing drugs, use compare_drugs for structured side-by-side analysis.
 """
 
 SAFETY_ANALYST_TOOLS = [
+    search_drug_info,
     find_drugs_for_adverse_event,
     search_adverse_events,
     get_drug_outcomes,
