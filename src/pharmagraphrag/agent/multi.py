@@ -163,6 +163,7 @@ def ask_safety_analyst(question: str) -> str:
 
     The Safety Analyst specializes in adverse events, patient outcomes,
     and drug safety comparisons. Use this for questions like:
+    - "What adverse events does ibuprofen cause?"
     - "Which drugs cause hepatotoxicity?"
     - "Compare aspirin vs ibuprofen safety"
     - "What are the patient outcomes for warfarin?"
@@ -204,9 +205,9 @@ specialized experts. Your job is to understand the user's question and
 delegate to the right expert(s):
 
 Your team:
-- ask_drug_expert: for drug profiles, interactions, categories, and drug name searches
-- ask_safety_analyst: for adverse events, patient outcomes, drug safety comparisons
-- ask_literature_researcher: for FDA drug label text (warnings, contraindications, pharmacology)
+- ask_drug_expert: for drug profiles, interactions, pharmacologic categories, drug name searches
+- ask_safety_analyst: for adverse events of a drug, drugs causing a specific adverse event, patient outcomes, drug safety comparisons
+- ask_literature_researcher: for FDA drug label text (warnings, contraindications, pharmacology, dosage)
 
 Workflow:
 1. Analyze the user's question to determine which expert(s) to consult.
