@@ -15,7 +15,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 
 ---
 
-### Table of Contents
+## Table of Contents
 
 - [Screenshots](#screenshots)
 - [Key Highlights](#key-highlights)
@@ -82,7 +82,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 <summary><strong>Component Status</strong> — all modules complete, 198 tests passing</summary>
 
 | Component | Status | Details |
-|---|---|---|
+| --- | --- | --- |
 | Data Pipeline | ✅ Complete | FAERS (2024Q3+Q4): 816K reports, 3.9M drug entries. DailyMed: 88 drugs |
 | Knowledge Graph | ✅ Complete | 4,998 Drugs, 6,863 AdverseEvents, 365K CAUSES, 193 INTERACTS_WITH |
 | Vector Store | ✅ Complete | 5,654 text chunks, 384-dim embeddings, cosine similarity search |
@@ -218,7 +218,7 @@ In Agent Mode, the LLM autonomously decides which tools to call:
 ## Tech Stack
 
 | Component | Technology |
-|---|---|
+| --- | --- |
 | Language | Python 3.13 (compatible 3.11+) |
 | Package Manager | [uv](https://docs.astral.sh/uv/) (Rust-based, fast) |
 | Knowledge Graph | Neo4j 5 Community (Docker) |
@@ -238,7 +238,7 @@ In Agent Mode, the LLM autonomously decides which tools to call:
 ## Data Sources
 
 | Source | Content | Scale |
-|---|---|---|
+| --- | --- | --- |
 | [FDA FAERS](https://fis.fda.gov/extensions/FPD-QDE-FAERS/FPD-QDE-FAERS.html) | Adverse event reports (drugs, reactions, outcomes) | 816K reports, 2 quarters |
 | [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | Drug labels (interactions, warnings, contraindications) | 88 drugs, 12 label sections |
 
@@ -341,7 +341,7 @@ docker compose up --build -d
 ### API Endpoints
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | `POST` | `/query` | Ask a question → RAG-powered answer with sources |
 | `POST` | `/agent/query` | Agent Mode — ReAct agent autonomously selects tools |
 | `GET` | `/drug/{name}` | Graph data for a specific drug |
@@ -355,7 +355,7 @@ Interactive documentation available at [`/docs`](https://pharmagraphrag-api-8936
 The project is **deployed and live** on a distributed cloud architecture:
 
 | Service | Platform | URL |
-|---|---|---|
+| --- | --- | --- |
 | Chat UI | [Streamlit Community Cloud](https://streamlit.io/cloud) | [pharmagraphrag.streamlit.app](https://pharmagraphrag.streamlit.app) |
 | API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | [pharmagraphrag-api-...run.app](https://pharmagraphrag-api-893694384146.us-central1.run.app/health) |
 | Knowledge Graph | [Neo4j Aura](https://neo4j.com/cloud/aura-free/) | Managed instance (11.9K nodes, 381K rels) |
@@ -364,6 +364,7 @@ The project is **deployed and live** on a distributed cloud architecture:
 <summary>📋 Reproducing the deployment</summary>
 
 **Neo4j Aura** — Create a free instance at [console.neo4j.io](https://console.neo4j.io), then migrate data:
+
 ```bash
 uv run python scripts/migrate_neo4j.py \
     --source bolt://localhost:7687 --source-password pharmagraphrag \
@@ -371,6 +372,7 @@ uv run python scripts/migrate_neo4j.py \
 ```
 
 **Google Cloud Run** — Build and deploy the API:
+
 ```bash
 # Option A: Local Docker build
 docker build -f docker/Dockerfile.cloudrun -t gcr.io/<project>/pharmagraphrag-api .
@@ -416,7 +418,7 @@ uv run mypy src/                           # Type check
 
 ### Project Structure
 
-```
+```text
 src/pharmagraphrag/
 ├── config.py               # Pydantic BaseSettings (Neo4j, LLM, ChromaDB, etc.)
 ├── data/                   # Data download, cleaning, ingestion
@@ -462,14 +464,14 @@ src/pharmagraphrag/
 ```
 
 | Node | Count | Source |
-|---|---|---|
+| --- | --- | --- |
 | Drug | 4,998 | FAERS + DailyMed |
 | AdverseEvent | 6,863 | FAERS |
 | Outcome | 7 | FAERS (Death, Hospitalization, etc.) |
 | DrugCategory | 32 | DailyMed |
 
 | Relationship | Count |
-|---|---|
+| --- | --- |
 | CAUSES | 365,360 |
 | HAS_OUTCOME | 15,759 |
 | INTERACTS_WITH | 193 |
