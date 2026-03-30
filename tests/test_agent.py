@@ -500,26 +500,27 @@ class TestMultiAgentDefinitions:
 class TestCollectStructuredFromResults:
     """Test the _collect_structured_from_results helper."""
 
+    @patch("pharmagraphrag.vectorstore.store.search", return_value=[])
     @patch("pharmagraphrag.engine.entity_extractor.get_known_drugs", return_value={"ASPIRIN"})
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drug_from_question(self, mock_ctx, _mock_drugs):
+    def test_extracts_drug_from_question(self, mock_ctx, _mock_drugs, _mock_vs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
         mock_ctx.return_value = {"drug_info": {"name": "ASPIRIN"}}
 
         tool_calls = [{"tool": "ask_drug_expert", "args": {"question": "What is aspirin?"}}]
         tool_results = [{"tool": "ask_drug_expert", "content": "Aspirin details."}]
-        graph, vector = _collect_structured_from_results(tool_calls, tool_results)
+        graph, _vector = _collect_structured_from_results(tool_calls, tool_results)
 
         assert "ASPIRIN" in graph
-        assert vector == []
 
+    @patch("pharmagraphrag.vectorstore.store.search", return_value=[])
     @patch(
         "pharmagraphrag.engine.entity_extractor.get_known_drugs",
         return_value={"IBUPROFEN", "WARFARIN", "CARBAMAZEPINE"},
     )
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drug_from_results_content(self, mock_ctx, _mock_drugs):
+    def test_extracts_drug_from_results_content(self, mock_ctx, _mock_drugs, _mock_vs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
         mock_ctx.return_value = {"drug_info": {"name": "IBUPROFEN"}}
@@ -540,12 +541,13 @@ class TestCollectStructuredFromResults:
 
         assert "IBUPROFEN" in graph
 
+    @patch("pharmagraphrag.vectorstore.store.search", return_value=[])
     @patch(
         "pharmagraphrag.engine.entity_extractor.get_known_drugs",
         return_value={"ASPIRIN", "IBUPROFEN"},
     )
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drugs_from_comparison(self, mock_ctx, _mock_drugs):
+    def test_extracts_drugs_from_comparison(self, mock_ctx, _mock_drugs, _mock_vs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
         mock_ctx.return_value = {"drug_info": {"name": "test"}}

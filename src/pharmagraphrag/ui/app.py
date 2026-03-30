@@ -840,12 +840,47 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                 pills.append(f'<span class="pharma-badge error">⚠️ {msg.error}</span>')
             if msg.confidence:
                 conf_icon = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(msg.confidence, "⚪")
+                conf_tip = {
+                    "high": "Multiple data sources confirm this answer",
+                    "medium": "Based on available data, but some gaps exist",
+                    "low": "Limited data available — verify independently",
+                }.get(msg.confidence, "")
                 pills.append(
-                    f'<span class="pharma-badge model">{conf_icon} Confidence: {msg.confidence}</span>'
+                    f'<span class="pharma-badge model" title="{conf_tip}">'
+                    f"{conf_icon} Confidence: {msg.confidence}</span>"
                 )
 
             if pills:
                 st.markdown(" ".join(pills), unsafe_allow_html=True)
+
+            # Pipeline steps for classic mode (no agent)
+            if not msg.agent_tool_calls and (msg.drugs_extracted or msg.sources_vector):
+                n_graph = len(msg.sources_graph) if msg.sources_graph else 0
+                n_vector = len(msg.sources_vector) if msg.sources_vector else 0
+                with st.expander(
+                    f"🔍 Pipeline steps ({n_graph} graph + {n_vector} vector)",
+                    expanded=False,
+                ):
+                    st.markdown("**1. Entity extraction**")
+                    if msg.drugs_extracted:
+                        st.markdown(f"   Drugs found: `{'`, `'.join(msg.drugs_extracted)}`")
+                    else:
+                        st.markdown("   No drug entities detected.")
+                    st.markdown("**2. Graph retrieval** (Neo4j)")
+                    if msg.drugs_found:
+                        st.markdown(
+                            f"   {len(msg.drugs_found)} drug(s) matched: "
+                            f"`{'`, `'.join(msg.drugs_found)}`"
+                        )
+                    else:
+                        st.markdown("   No drugs matched in knowledge graph.")
+                    st.markdown("**3. Vector retrieval** (ChromaDB)")
+                    st.markdown(f"   {n_vector} drug label chunk(s) retrieved.")
+                    st.markdown("**4. LLM generation**")
+                    if msg.llm_provider:
+                        st.markdown(f"   Provider: `{msg.llm_provider}/{msg.llm_model}`")
+                    else:
+                        st.markdown("   LLM not used (raw context returned).")
 
             # Agent tool calls (as an expander)
             if msg.agent_tool_calls:
@@ -867,6 +902,20 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                                 if len(result_content) > 500:
                                     preview += "…"
                                 st.code(preview, language=None)
+
+                        # Show inner tool calls from sub-agents (multi-agent mode)
+                        inner_calls = tc.get("inner_tool_calls", [])
+                        if inner_calls:
+                            st.markdown(f"   *Sub-agent used {len(inner_calls)} tool(s):*")
+                            for j, inner_tc in enumerate(inner_calls):
+                                inner_name = inner_tc.get("tool", "unknown")
+                                inner_args = inner_tc.get("args", {})
+                                inner_args_str = ", ".join(
+                                    f"{k}={v!r}" for k, v in inner_args.items()
+                                )
+                                st.markdown(
+                                    f"   {i_tc + 1}.{j + 1}. `{inner_name}({inner_args_str})`"
+                                )
 
             # Sources & graph visualisation (in tabs)
             has_sources = msg.sources_graph or msg.sources_vector
@@ -892,8 +941,16 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
             # Follow-up suggestions from structured output
             if msg.follow_up_suggestions:
                 st.markdown("**💡 Follow-up questions:**")
-                for suggestion in msg.follow_up_suggestions:
-                    st.markdown(f"- {suggestion}")
+                cols_fu = st.columns(len(msg.follow_up_suggestions))
+                for j, suggestion in enumerate(msg.follow_up_suggestions):
+                    with cols_fu[j]:
+                        if st.button(
+                            suggestion,
+                            key=f"followup_{index}_{j}",
+                            use_container_width=True,
+                        ):
+                            st.session_state._pending_example = suggestion
+                            st.rerun()
 
 
 # ---------------------------------------------------------------------------

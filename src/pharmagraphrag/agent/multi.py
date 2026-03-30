@@ -86,6 +86,11 @@ LITERATURE_RESEARCHER_TOOLS = [
 
 _sub_agents: dict[str, Any] = {}
 
+# Stores inner tool calls from the most recent sub-agent execution.
+# Keyed by sub-agent name (drug_expert, safety_analyst, literature_researcher).
+# Populated by _run_sub_agent, consumed by run_multi_agent.
+_last_inner_tool_calls: dict[str, dict[str, Any]] = {}
+
 
 def _get_llm():
     settings = get_settings()
@@ -115,13 +120,38 @@ def _get_sub_agent(name: str):
 
 
 def _run_sub_agent(name: str, question: str) -> str:
-    """Run a sub-agent and return its text answer."""
+    """Run a sub-agent and return its text answer.
+
+    Also stores inner tool calls in _last_inner_tool_calls for the
+    supervisor to include in the response.
+    """
     agent = _get_sub_agent(name)
     try:
         result = agent.invoke({"messages": [("user", question)]})
         messages = result.get("messages", [])
         if not messages:
             return "No response from sub-agent."
+
+        # Capture inner tool calls for transparency
+        from langchain_core.messages import ToolMessage as _ToolMsg
+
+        inner_calls = []
+        inner_results = []
+        for msg in messages:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    inner_calls.append({"tool": tc.get("name", ""), "args": tc.get("args", {})})
+            if isinstance(msg, _ToolMsg):
+                content = msg.content
+                if isinstance(content, str) and len(content) > 500:
+                    content = content[:500] + "…"
+                inner_results.append({"tool": msg.name or "", "content": content})
+
+        _last_inner_tool_calls[name] = {
+            "tool_calls": inner_calls,
+            "tool_results": inner_results,
+        }
+
         raw = messages[-1].content
         if isinstance(raw, list):
             return "\n".join(
@@ -311,6 +341,22 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
             len(answer),
         )
 
+        # Enrich supervisor tool calls with inner sub-agent tool calls
+        # Maps supervisor tool names to sub-agent names
+        _supervisor_to_sub = {
+            "ask_drug_expert": "drug_expert",
+            "ask_safety_analyst": "safety_analyst",
+            "ask_literature_researcher": "literature_researcher",
+        }
+        for tc in tool_calls:
+            sub_name = _supervisor_to_sub.get(tc.get("tool", ""))
+            if sub_name and sub_name in _last_inner_tool_calls:
+                tc["inner_tool_calls"] = _last_inner_tool_calls[sub_name].get("tool_calls", [])
+                tc["inner_tool_results"] = _last_inner_tool_calls[sub_name].get("tool_results", [])
+
+        # Clear inner tool calls for next invocation
+        _last_inner_tool_calls.clear()
+
         # Re-collect structured data: extract drug names from sub-agent
         # questions and results for graph visualization
         graph_data, vector_data = _collect_structured_from_results(tool_calls, tool_results)
@@ -347,19 +393,23 @@ def _collect_structured_from_results(
     Uses the entity extractor to reliably identify drug names from:
     1. The questions delegated to sub-agents (tool call args)
     2. The text responses from sub-agents
-    Then re-fetches full context from Neo4j for graph visualization.
+    Then re-fetches full context from Neo4j for graph visualization,
+    and runs vector search for drug label sources.
     """
     from pharmagraphrag.engine.entity_extractor import extract_entities
     from pharmagraphrag.graph import queries
+    from pharmagraphrag.vectorstore import store as vs
 
     graph_data: dict[str, Any] = {}
     vector_data: list[dict[str, Any]] = []
     seen_drugs: set[str] = set()
 
     # 1. Extract drug names from the questions delegated to sub-agents
+    all_questions: list[str] = []
     for tc in tool_calls:
         question = tc.get("args", {}).get("question", "")
         if question:
+            all_questions.append(question)
             try:
                 entities = extract_entities(question, fuzzy=True)
                 for drug in entities.drugs:
@@ -379,6 +429,14 @@ def _collect_structured_from_results(
                         _try_add_drug(drug, graph_data, seen_drugs, queries)
             except Exception:
                 pass
+
+    # 3. Vector search: search drug labels for context using sub-agent questions
+    for question in all_questions[:3]:
+        try:
+            results = vs.search(question, n_results=3)
+            vector_data.extend(results)
+        except Exception:
+            pass
 
     return graph_data, vector_data
 
