@@ -500,39 +500,66 @@ class TestMultiAgentDefinitions:
 class TestCollectStructuredFromResults:
     """Test the _collect_structured_from_results helper."""
 
+    @patch("pharmagraphrag.engine.entity_extractor.get_known_drugs", return_value={"ASPIRIN"})
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drug_from_drug_prefix(self, mock_ctx):
+    def test_extracts_drug_from_question(self, mock_ctx, _mock_drugs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
         mock_ctx.return_value = {"drug_info": {"name": "ASPIRIN"}}
 
-        results = [{"tool": "ask_drug_expert", "content": "Drug: ASPIRIN\nSome details."}]
-        graph, vector = _collect_structured_from_results(results)
+        tool_calls = [{"tool": "ask_drug_expert", "args": {"question": "What is aspirin?"}}]
+        tool_results = [{"tool": "ask_drug_expert", "content": "Aspirin details."}]
+        graph, vector = _collect_structured_from_results(tool_calls, tool_results)
 
         assert "ASPIRIN" in graph
         assert vector == []
 
+    @patch(
+        "pharmagraphrag.engine.entity_extractor.get_known_drugs",
+        return_value={"IBUPROFEN", "WARFARIN", "CARBAMAZEPINE"},
+    )
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drug_from_reports_pattern(self, mock_ctx):
+    def test_extracts_drug_from_results_content(self, mock_ctx, _mock_drugs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
-        mock_ctx.return_value = {"drug_info": {"name": "WARFARIN"}}
+        mock_ctx.return_value = {"drug_info": {"name": "IBUPROFEN"}}
 
-        results = [{"tool": "ask_safety_analyst", "content": "- WARFARIN: 150 reports"}]
-        graph, _vector = _collect_structured_from_results(results)
+        tool_calls = [
+            {
+                "tool": "ask_safety_analyst",
+                "args": {"question": "What adverse events does ibuprofen cause?"},
+            }
+        ]
+        tool_results = [
+            {
+                "tool": "ask_safety_analyst",
+                "content": "Ibuprofen is associated with NAUSEA (217 reports). Also interacts with warfarin and carbamazepine.",
+            }
+        ]
+        graph, _vector = _collect_structured_from_results(tool_calls, tool_results)
 
-        assert "WARFARIN" in graph
+        assert "IBUPROFEN" in graph
 
+    @patch(
+        "pharmagraphrag.engine.entity_extractor.get_known_drugs",
+        return_value={"ASPIRIN", "IBUPROFEN"},
+    )
     @patch("pharmagraphrag.graph.queries.get_drug_full_context")
-    def test_extracts_drugs_from_comparison(self, mock_ctx):
+    def test_extracts_drugs_from_comparison(self, mock_ctx, _mock_drugs):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
         mock_ctx.return_value = {"drug_info": {"name": "test"}}
 
-        results = [
-            {"tool": "ask_safety_analyst", "content": "=== Comparison: ASPIRIN vs IBUPROFEN ==="}
+        tool_calls = [
+            {
+                "tool": "ask_safety_analyst",
+                "args": {"question": "Compare aspirin vs ibuprofen safety"},
+            }
         ]
-        graph, _vector = _collect_structured_from_results(results)
+        tool_results = [
+            {"tool": "ask_safety_analyst", "content": "Aspirin and ibuprofen comparison."}
+        ]
+        graph, _vector = _collect_structured_from_results(tool_calls, tool_results)
 
         assert "ASPIRIN" in graph
         assert "IBUPROFEN" in graph
@@ -540,7 +567,7 @@ class TestCollectStructuredFromResults:
     def test_empty_results(self):
         from pharmagraphrag.agent.multi import _collect_structured_from_results
 
-        graph, vector = _collect_structured_from_results([])
+        graph, vector = _collect_structured_from_results([], [])
         assert graph == {}
         assert vector == []
 

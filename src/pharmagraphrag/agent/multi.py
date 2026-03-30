@@ -20,7 +20,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
 
-from pharmagraphrag.agent.graph import AGENT_MODEL, AgentResponse
+from pharmagraphrag.agent.graph import AGENT_MODEL, AgentResponse, StructuredResponse
 from pharmagraphrag.agent.tools import (
     compare_drugs,
     find_drugs_by_category,
@@ -232,6 +232,7 @@ def _get_supervisor():
             model=llm,
             tools=SUPERVISOR_TOOLS,
             prompt=SUPERVISOR_PROMPT,
+            response_format=StructuredResponse,
             checkpointer=_checkpointer,
         )
     return _supervisor
@@ -278,17 +279,31 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
                     }
                 )
 
-        # Final answer
-        messages = result.get("messages", [])
-        raw = messages[-1].content if messages else ""
-        if isinstance(raw, list):
-            answer = "\n".join(
-                b.get("text", "") if isinstance(b, dict) else str(b)
-                for b in raw
-                if not (isinstance(b, dict) and b.get("type") == "thinking")
-            ).strip()
+        # Extract structured response if available
+        structured = result.get("structured_response")
+        drugs_mentioned: list[str] = []
+        ae_mentioned: list[str] = []
+        confidence = ""
+        follow_ups: list[str] = []
+
+        if structured and isinstance(structured, StructuredResponse):
+            answer = structured.answer
+            drugs_mentioned = structured.drugs_mentioned
+            ae_mentioned = structured.adverse_events_mentioned
+            confidence = structured.confidence
+            follow_ups = structured.follow_up_suggestions
         else:
-            answer = str(raw)
+            # Fallback: extract from last message
+            messages = result.get("messages", [])
+            raw = messages[-1].content if messages else ""
+            if isinstance(raw, list):
+                answer = "\n".join(
+                    b.get("text", "") if isinstance(b, dict) else str(b)
+                    for b in raw
+                    if not (isinstance(b, dict) and b.get("type") == "thinking")
+                ).strip()
+            else:
+                answer = str(raw)
 
         logger.info(
             "Multi-agent completed: {} tool calls, answer length={}",
@@ -296,10 +311,9 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
             len(answer),
         )
 
-        # Re-collect structured data using the inner tool calls from sub-agents
-        # The supervisor's tool calls are ask_drug_expert, etc. — we need inner calls
-        # for graph visualization. Extract drug names mentioned in results.
-        graph_data, vector_data = _collect_structured_from_results(tool_results)
+        # Re-collect structured data: extract drug names from sub-agent
+        # questions and results for graph visualization
+        graph_data, vector_data = _collect_structured_from_results(tool_calls, tool_results)
 
         return AgentResponse(
             answer=answer,
@@ -307,6 +321,10 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
             tool_results=tool_results,
             graph_data=graph_data,
             vector_data=vector_data,
+            drugs_mentioned=drugs_mentioned,
+            adverse_events_mentioned=ae_mentioned,
+            confidence=confidence,
+            follow_up_suggestions=follow_ups,
         )
 
     except Exception as exc:
@@ -321,41 +339,46 @@ def run_multi_agent(question: str, thread_id: str | None = None) -> AgentRespons
 
 
 def _collect_structured_from_results(
+    tool_calls: list[dict[str, Any]],
     tool_results: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Extract drug names from sub-agent text results and fetch structured data.
+    """Extract drug names from sub-agent questions/results and fetch structured data.
 
-    Since the supervisor delegates to sub-agents (which call the actual tools),
-    we parse drug names from the text output and re-fetch from Neo4j.
+    Uses the entity extractor to reliably identify drug names from:
+    1. The questions delegated to sub-agents (tool call args)
+    2. The text responses from sub-agents
+    Then re-fetches full context from Neo4j for graph visualization.
     """
+    from pharmagraphrag.engine.entity_extractor import extract_entities
     from pharmagraphrag.graph import queries
 
     graph_data: dict[str, Any] = {}
     vector_data: list[dict[str, Any]] = []
     seen_drugs: set[str] = set()
 
+    # 1. Extract drug names from the questions delegated to sub-agents
+    for tc in tool_calls:
+        question = tc.get("args", {}).get("question", "")
+        if question:
+            try:
+                entities = extract_entities(question, fuzzy=True)
+                for drug in entities.drugs:
+                    if drug not in seen_drugs and len(seen_drugs) < 10:
+                        _try_add_drug(drug, graph_data, seen_drugs, queries)
+            except Exception:
+                pass
+
+    # 2. Extract drug names from sub-agent text responses
     for tr in tool_results:
         content = tr.get("content", "")
-        # Extract drug names from formatted lines like "Drug: ASPIRIN" or "- ASPIRIN: N reports"
-        for line in content.split("\n"):
-            line = line.strip()
-            # Pattern: "Drug: NAME"
-            if line.startswith("Drug: "):
-                drug = line.split("Drug: ", 1)[1].strip().upper()
-                if drug and drug not in seen_drugs and len(seen_drugs) < 10:
-                    _try_add_drug(drug, graph_data, seen_drugs, queries)
-            # Pattern: "- DRUG_NAME: N reports"
-            elif line.startswith("- ") and ":" in line and "reports" in line.lower():
-                drug = line.split("- ", 1)[1].split(":")[0].strip().upper()
-                if drug and drug not in seen_drugs and len(seen_drugs) < 10:
-                    _try_add_drug(drug, graph_data, seen_drugs, queries)
-            # Pattern: "=== Comparison: DRUG1 vs DRUG2 ==="
-            elif "Comparison:" in line and " vs " in line:
-                parts = line.split("Comparison:", 1)[1].split("===")[0].strip()
-                for d in parts.split(" vs "):
-                    drug = d.strip().upper()
-                    if drug and drug not in seen_drugs and len(seen_drugs) < 10:
+        if content:
+            try:
+                entities = extract_entities(content, fuzzy=False)
+                for drug in entities.drugs:
+                    if drug not in seen_drugs and len(seen_drugs) < 10:
                         _try_add_drug(drug, graph_data, seen_drugs, queries)
+            except Exception:
+                pass
 
     return graph_data, vector_data
 
