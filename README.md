@@ -95,6 +95,8 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 
 ## Architecture
 
+> The diagram below shows the **Classic Mode** pipeline. In Agent and Multi-Agent modes, the Query Engine is replaced by a LangGraph ReAct agent that autonomously selects tools from the same knowledge storage layer.
+
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#f4f7f6', 'fontFamily': 'Helvetica, Arial, sans-serif', 'fontSize': '14px'}}}%%
 graph TB
