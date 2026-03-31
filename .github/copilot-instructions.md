@@ -92,7 +92,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **Knowledge Graph**: Neo4j 5 Community (Docker container `pharmagraphrag-neo4j`)
 - **Vector Store**: ChromaDB (embedded, persisted at `data/chroma/`)
 - **Embeddings**: sentence-transformers (all-MiniLM-L6-v2, 384 dimensions)
-- **LLM Primary**: Google Gemini API (free tier, `google-genai` SDK >= 1.64.0)
+- **LLM Primary**: Google Gemini API (Tier 1, `google-genai` SDK >= 1.64.0)
 - **LLM Backup**: Ollama + Llama 3 / Mistral (local, `ollama` SDK >= 0.4)
 - **Agent Framework**: LangGraph + LangChain (ReAct agent with tool calling)
 - **Entity Matching**: rapidfuzz >= 3.14.3 (fuzzy string matching)
@@ -308,7 +308,7 @@ PharmaGraphRAG/
 
 1. **Neo4j over RDFLib**: Learning new skill (more marketable). Graph database provides native traversal.
 2. **ChromaDB over Pinecone/Qdrant**: Embedded (no extra infra), SQLite-backed, good enough for portfolio scale.
-3. **Gemini API over OpenAI**: Free tier is generous. Ollama as local backup removes vendor lock-in.
+3. **Gemini API over OpenAI**: Tier 1 ($10/month) gives generous quotas (Flash 10K RPD, Pro 1K RPD). Ollama as local backup removes vendor lock-in.
 4. **google-genai over google-generativeai**: The `google-generativeai` SDK is deprecated. We use `google-genai >= 1.64.0` with `google.genai.Client` and `types.GenerateContentConfig`.
 5. **Dual retrieval (graph + vector)**: The core differentiator. Graph provides structured context (relationships), vector provides unstructured context (text chunks). Merging both gives better answers than either alone.
 6. **sentence-transformers over OpenAI embeddings**: Free, local, fast. all-MiniLM-L6-v2 is the standard baseline.
@@ -395,7 +395,7 @@ The system is deployed on a distributed free-tier architecture:
 - **Streamlit Cloud**: reads `API_URL` from `st.secrets`, switches to HTTP mode (calls Cloud Run API instead of local imports). Uses `uv sync` from `uv.lock`. Main file: `src/pharmagraphrag/ui/app.py`.
 - **Cloud Run**: Docker image with CPU-only PyTorch + baked-in ChromaDB + pre-cached embedding model. `Dockerfile.cloudrun` uses multi-stage build. Min instances=0 (scale to zero), max=2. Cold start ~50s, warm ~4.5s.
 - **Neo4j Aura**: Free tier (200K nodes, 400K rels). Data migrated via `scripts/migrate_neo4j.py`. Auto-pauses after 3 days inactivity.
-- **Gemini API**: `GEMINI_API_KEY` set as Cloud Run env var. Free tier: 15 RPM.
+- **Gemini API**: `GEMINI_API_KEY` set as Cloud Run env var. Tier 1: Flash 10K RPD, Pro 1K RPD.
 
 ### Deployment Pipeline (CD)
 - **Trigger**: GitHub Actions `deploy.yml` on version tags (`v*`)

@@ -30,32 +30,27 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 
 ## Screenshots
 
+**💬 Chat Interface — Multi-Agent Mode with Model Selector**
+
+<img src="assets/screenshots/chat-ui.png" width="100%" alt="Chat UI — Multi-agent response with model selector, confidence levels, and follow-up suggestions" />
+
 <table>
 <tr>
-<td width="50%">
+<td width="33%">
 
-**💬 Chat Interface**
-
-<img src="assets/screenshots/chat-ui.png" width="100%" alt="Chat UI — Ask natural language questions, get grounded answers" />
-
-</td>
-<td width="50%">
-
-**🔗 Knowledge Graph Visualization**
+**🔗 Graph Visualization**
 
 <img src="assets/screenshots/graph-viz.png" width="100%" alt="Graph Visualization — Interactive drug-event relationship graph" />
 
 </td>
-</tr>
-<tr>
-<td width="50%">
+<td width="33%">
 
-**📊 Source Evidence Panel**
+**📊 Source Evidence**
 
 <img src="assets/screenshots/sources-panel.png" width="100%" alt="Sources Panel — Transparent evidence from FAERS and drug labels" />
 
 </td>
-<td width="50%">
+<td width="33%">
 
 **⚡ FastAPI Swagger**
 
