@@ -24,7 +24,7 @@ All three development phases are finished. The system is fully operational end-t
 | Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct + multi-agent supervisor) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
-| Tests | 198 passing | `tests/` |
+| Tests | 208 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -100,7 +100,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (ci.yml: lint+test on push; deploy.yml: CD on v* tags via Cloud Build)
-- **Testing**: pytest (198 tests passing)
+- **Testing**: pytest (208 tests passing)
 - **CI/CD**: GitHub Actions (ci.yml: lint + test matrix 3.11/3.13; deploy.yml: v* tags → Cloud Build → Cloud Run)
 - **Cloud Build**: Google Cloud Build (cloudbuild.yaml) — downloads ChromaDB from GCS, builds Docker, deploys
 - **Object Storage**: Google Cloud Storage (gs://pharmagraphrag-data for ChromaDB snapshots)
@@ -134,7 +134,7 @@ PharmaGraphRAG/
 |   +-- chroma/                    # ChromaDB persistent storage (gitignored)
 +-- src/pharmagraphrag/
 |   +-- __init__.py                # Package root, version 0.1.0
-|   +-- config.py                  # Pydantic BaseSettings (Neo4j, LLM, ChromaDB, FAERS)
+|   +-- config.py                  # Pydantic BaseSettings (Neo4j, LLM, ChromaDB, FAERS) + model constants (FLASH_MODELS, PRO_MODELS)
 |   +-- data/
 |   |   +-- __init__.py
 |   |   +-- download_faers.py      # Download FAERS quarterly ZIPs from FDA
@@ -161,8 +161,8 @@ PharmaGraphRAG/
 |   +-- agent/
 |   |   +-- __init__.py
 |   |   +-- tools.py               # 9 LangChain tools wrapping graph/vector services
-|   |   +-- graph.py               # LangGraph ReAct agent (create_react_agent + Gemini)
-|   |   +-- multi.py               # Multi-agent supervisor with 3 specialized sub-agents
+|   |   +-- graph.py               # LangGraph ReAct agent (create_react_agent + Gemini, per-model caching)
+|   |   +-- multi.py               # Multi-agent supervisor with 3 specialized sub-agents (dual model support)
 |   +-- api/
 |   |   +-- __init__.py
 |   |   +-- main.py                # FastAPI app: POST /query, POST /agent/query, POST /agent/multi, GET /drug/{name}, GET /health
@@ -283,7 +283,7 @@ PharmaGraphRAG/
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 - **Deploy rule**: NEVER create version tags or trigger deployments without explicit user confirmation. Commits and pushes to main are fine; tags (v*) require user approval.
 
-### Testing (198 tests)
+### Testing (208 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -301,8 +301,8 @@ PharmaGraphRAG/
 | test_llm.py | 14 | Gemini, Ollama, fallback chain |
 | test_api.py | 18 | FastAPI endpoints, TestClient, drug search, fallback |
 | test_ui.py | 14 | Streamlit components, session state |
-| test_agent.py | 51 | 9 tools, AgentResponse, StructuredResponse, multi-agent supervisor, endpoints |
-| **Total** | **198** | |
+| test_agent.py | 61 | 9 tools, AgentResponse, StructuredResponse, multi-agent supervisor, model selector, endpoints |
+| **Total** | **208** | |
 
 ## Key Design Decisions
 
@@ -320,8 +320,11 @@ PharmaGraphRAG/
 ## LLM Configuration
 
 ### Gemini API
-- Model: gemini-2.5-flash (classic pipeline, fast, free tier)
-- Agent Model: gemini-2.5-flash-lite (agent mode, optimized for tool calling)
+- Default model: gemini-2.5-flash (configurable per query via UI/API)
+- Flash models: gemini-2.5-flash, gemini-3-flash-preview, gemini-2.5-flash-lite
+- Pro models (supervisor only): gemini-2.5-pro, gemini-3.1-pro-preview
+- Model selector: UI sidebar dropdown per mode. Multi-agent has dual selectors (supervisor + sub-agents)
+- Per-model agent caching: agents cached by model string in dicts, not singletons
 - API key via GEMINI_API_KEY env var
 - SDK: google-genai (>= 1.64.0)
 - Temperature: 0.3, max_output_tokens: 2048
