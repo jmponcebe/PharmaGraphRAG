@@ -101,8 +101,8 @@ class AgentResponse:
         return self.error is None and bool(self.answer)
 
 
-# Agent uses flash-lite to save quota (separate RPD limit from classic mode's flash)
-AGENT_MODEL = "gemini-2.5-flash-lite"
+# Agent uses the same model as classic mode (paid tier has 10K RPD, enough for both)
+AGENT_MODEL = "gemini-2.5-flash"
 
 # Simple in-memory response cache to avoid wasting RPD on repeated questions
 _response_cache: dict[str, AgentResponse] = {}

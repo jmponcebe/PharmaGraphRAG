@@ -512,7 +512,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
                 content=f"⚠️ {error}",
                 error=error,
                 llm_provider="agent",
-                llm_model="gemini-2.5-flash-lite",
+                llm_model="gemini-2.5-flash",
             )
 
         # Use structured data returned by the agent
@@ -528,7 +528,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash-lite",
+            llm_model="gemini-2.5-flash",
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
@@ -592,7 +592,7 @@ def _process_question_multi_api(question: str) -> ChatMessage:
                 content=f"⚠️ {error}",
                 error=error,
                 llm_provider="multi-agent",
-                llm_model="gemini-2.5-flash-lite",
+                llm_model="gemini-2.5-flash",
             )
 
         graph_raw = data.get("graph_data", {})
@@ -607,7 +607,7 @@ def _process_question_multi_api(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="multi-agent",
-            llm_model="gemini-2.5-flash-lite",
+            llm_model="gemini-2.5-flash",
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
@@ -649,7 +649,7 @@ def _process_question_multi_local(question: str) -> ChatMessage:
                 content=f"⚠️ {result.error}",
                 error=result.error,
                 llm_provider="multi-agent",
-                llm_model="gemini-2.5-flash-lite",
+                llm_model="gemini-2.5-flash",
             )
 
         tc_list = result.tool_calls if result.tool_calls else []
@@ -664,7 +664,7 @@ def _process_question_multi_local(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="multi-agent",
-            llm_model="gemini-2.5-flash-lite",
+            llm_model="gemini-2.5-flash",
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
@@ -701,7 +701,7 @@ def _process_question_agent_local(question: str) -> ChatMessage:
                 content=f"⚠️ {result.error}",
                 error=result.error,
                 llm_provider="agent",
-                llm_model="gemini-2.5-flash-lite",
+                llm_model="gemini-2.5-flash",
             )
 
         # Format tool calls/results for structured storage
@@ -719,7 +719,7 @@ def _process_question_agent_local(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash-lite",
+            llm_model="gemini-2.5-flash",
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
