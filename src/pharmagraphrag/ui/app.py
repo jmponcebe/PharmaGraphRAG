@@ -847,7 +847,9 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
                 }.get(msg.confidence, "")
                 pills.append(
                     f'<span class="pharma-badge model" title="{conf_tip}">'
-                    f"{conf_icon} Confidence: {msg.confidence}</span>"
+                    f"{conf_icon} Confidence: {msg.confidence}"
+                    f' <span style="font-weight:normal;font-size:0.85em;opacity:0.8">'
+                    f"— {conf_tip}</span></span>"
                 )
 
             if pills:
@@ -941,16 +943,14 @@ def _display_message(msg: ChatMessage, *, index: int = 0) -> None:
             # Follow-up suggestions from structured output
             if msg.follow_up_suggestions:
                 st.markdown("**💡 Follow-up questions:**")
-                cols_fu = st.columns(len(msg.follow_up_suggestions))
                 for j, suggestion in enumerate(msg.follow_up_suggestions):
-                    with cols_fu[j]:
-                        if st.button(
-                            suggestion,
-                            key=f"followup_{index}_{j}",
-                            use_container_width=True,
-                        ):
-                            st.session_state._pending_example = suggestion
-                            st.rerun()
+                    if st.button(
+                        f"→ {suggestion}",
+                        key=f"followup_{index}_{j}",
+                        use_container_width=True,
+                    ):
+                        st.session_state._pending_example = suggestion
+                        st.rerun()
 
 
 # ---------------------------------------------------------------------------

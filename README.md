@@ -69,6 +69,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 
 - **Dual retrieval**: structured graph queries (Neo4j) + semantic vector search (ChromaDB) merged into a single LLM prompt
 - **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (9 tools: drug info, adverse events, interactions, labels, drug search, event search, outcomes, comparison, categories) based on the question. Includes conversation memory, structured output (confidence + follow-ups), multi-agent supervisor with 3 specialized experts, response caching and graceful fallback to classic pipeline
+- **Transparent UI**: clickable follow-up suggestions, confidence level tooltips, pipeline steps expander (classic mode), nested sub-agent reasoning hierarchy (multi-agent mode)
 - **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
 - **198 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
@@ -89,10 +90,10 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | Query Engine | ✅ Complete | Entity extraction (exact + fuzzy), dual retrieval, prompt assembly |
 | LLM Integration | ✅ Complete | Gemini API + Ollama with automatic fallback |
 | REST API | ✅ Complete | FastAPI: POST /query, POST /agent/query, POST /agent/multi, GET /drug/{name}, GET /health |
-| Chat UI | ✅ Complete | Streamlit: chat, graph visualization, sources panel, drug explorer |
+| Chat UI | ✅ Complete | Streamlit: chat, graph visualization, sources panel, drug explorer, clickable follow-ups, confidence tooltips, pipeline steps |
 | Docker Compose | ✅ Complete | Neo4j + API + UI + Ollama (optional profile) |
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
-| Agent Mode | ✅ Complete | LangGraph ReAct agent with 9 tools, conversation memory, structured output, multi-agent supervisor |
+| Agent Mode | ✅ Complete | LangGraph ReAct agent with 9 tools, conversation memory, structured output, multi-agent supervisor, nested reasoning |
 | Tests | ✅ 198 passing | Data (27) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (51) |
 
 </details>

@@ -67,7 +67,7 @@ FDA FAERS (CSV) + DailyMed (API)
 4. **Prompt Assembly** (`engine/query_engine.py`): merge graph + vector context into a structured prompt with `SYSTEM_PROMPT` + `USER_PROMPT`.
 5. **LLM Generation** (`llm/client.py`): call Gemini API (primary) or Ollama (fallback). Auto-fallback on error.
 6. **API Response** (`api/main.py`): return answer + sources via FastAPI `POST /query`.
-7. **UI Display** (`ui/app.py` + `ui/components.py`): Streamlit chat with graph visualization and source evidence.
+7. **UI Display** (`ui/app.py` + `ui/components.py`): Streamlit chat with graph visualization, source evidence, pipeline steps expander (classic), nested sub-agent reasoning (multi), clickable follow-up buttons, and confidence tooltips.
 
 #### Agent Mode (`POST /agent/query`)
 1. **User question** arrives at the LangGraph ReAct agent (`agent/graph.py`).
@@ -81,9 +81,10 @@ FDA FAERS (CSV) + DailyMed (API)
 #### Multi-Agent Mode (`POST /agent/multi`)
 1. **User question** arrives at the supervisor agent (`agent/multi.py`).
 2. **Delegation**: supervisor has 3 tool-wrappers: `ask_drug_expert`, `ask_safety_analyst`, `ask_literature_researcher`.
-3. **Sub-agent execution**: each sub-agent is a `create_react_agent` with a specialized prompt and tool subset (Drug Expert: 4 tools, Safety Analyst: 4 tools, Literature Researcher: 2 tools).
-4. **Synthesis**: supervisor collects sub-agent responses and generates a final coherent answer.
-5. **Response**: same `AgentQueryResponse` schema as single-agent mode.
+3. **Sub-agent execution**: each sub-agent is a `create_react_agent` with a specialized prompt and tool subset (Drug Expert: 4 tools, Safety Analyst: 4 tools, Literature Researcher: 2 tools). Each sub-agent's inner tool calls are captured and propagated to the response.
+4. **Synthesis**: supervisor collects sub-agent responses and generates a final coherent answer with `response_format=StructuredResponse` (confidence, drugs_mentioned, adverse_events_mentioned, follow_up_suggestions).
+5. **Structured data collection** (`_collect_structured_from_results`): uses `extract_entities()` (fuzzy matching) to identify drugs from sub-agent questions and responses. Fetches graph context via `get_drug_full_context()` and vector data via `store.search()` for up to 3 sub-agent questions.
+6. **Response**: returns `AgentQueryResponse` with answer, tool calls (including nested `inner_tool_calls` per sub-agent), tool results, `graph_data`, `vector_data`, structured metadata (drugs, AEs, confidence, follow-ups). UI renders Sources + Graph tabs identically to other modes, plus nested sub-agent reasoning hierarchy.
 
 ## Tech Stack
 - **Language**: Python 3.13 (runtime), compatible with 3.11+
@@ -168,7 +169,7 @@ PharmaGraphRAG/
 |   |   +-- models.py              # Pydantic v2 request/response schemas (incl. AgentQueryRequest/Response)
 |   +-- ui/
 |       +-- __init__.py
-|       +-- app.py                 # Streamlit chat interface
+|       +-- app.py                 # Streamlit chat: clickable follow-ups, confidence tooltips, pipeline steps (classic), nested sub-agent reasoning (multi)
 |       +-- components.py          # Graph viz, sources panel, drug explorer
 +-- tests/
 |   +-- __init__.py
