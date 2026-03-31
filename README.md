@@ -94,7 +94,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | Docker Compose | ✅ Complete | Neo4j + API + UI + Ollama (optional profile) |
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
 | Agent Mode | ✅ Complete | LangGraph ReAct agent with 9 tools, conversation memory, structured output, multi-agent supervisor, nested reasoning |
-| Tests | ✅ 198 passing | Data (27) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (51) |
+| Tests | ✅ 198 passing | Data (29) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (51) |
 
 </details>
 
