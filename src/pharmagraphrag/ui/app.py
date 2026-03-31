@@ -224,6 +224,8 @@ def _init_session() -> None:
             "n_results": 5,
             "llm_provider": "gemini",
             "agent_mode": False,
+            "model": None,  # None = server default
+            "subagent_model": None,  # None = same as model
         }
     # Unique session ID for agent conversation memory
     if "agent_session_id" not in st.session_state:
@@ -293,6 +295,62 @@ def _render_sidebar() -> None:
         f'<div class="mode-indicator {mode_class}">{mode_text}</div>',
         unsafe_allow_html=True,
     )
+
+    # Model selector — available models depend on the active mode
+    from pharmagraphrag.config import DEFAULT_MODEL, FLASH_MODELS, PRO_MODELS
+
+    flash_ids = [m["id"] for m in FLASH_MODELS]
+    flash_labels = [m["name"] for m in FLASH_MODELS]
+
+    if s.get("multi_agent"):
+        # Multi-agent: separate selectors for supervisor and sub-agents
+        all_models = list(FLASH_MODELS) + list(PRO_MODELS)
+        sup_ids = [m["id"] for m in all_models]
+        sup_labels = [m["name"] for m in all_models]
+
+        current_sup = s.get("model") or DEFAULT_MODEL
+        if current_sup not in sup_ids:
+            current_sup = DEFAULT_MODEL
+        sup_idx = sup_ids.index(current_sup) if current_sup in sup_ids else 0
+
+        sup_label = st.sidebar.selectbox(
+            "🧪 Supervisor Model",
+            sup_labels,
+            index=sup_idx,
+            key="sb_model_sup",
+            help="Model for the supervisor that synthesizes expert answers. Pro models offer higher quality.",
+        )
+        s["model"] = sup_ids[sup_labels.index(sup_label)]
+
+        current_sub = s.get("subagent_model") or DEFAULT_MODEL
+        if current_sub not in flash_ids:
+            current_sub = DEFAULT_MODEL
+        sub_idx = flash_ids.index(current_sub) if current_sub in flash_ids else 0
+
+        sub_label = st.sidebar.selectbox(
+            "⚡ Sub-agent Model",
+            flash_labels,
+            index=sub_idx,
+            key="sb_model_sub",
+            help="Model for specialized sub-agents (Drug Expert, Safety Analyst, Literature Researcher).",
+        )
+        s["subagent_model"] = flash_ids[flash_labels.index(sub_label)]
+    else:
+        # Classic / Agent: single model selector (Flash only)
+        current_model = s.get("model") or DEFAULT_MODEL
+        if current_model not in flash_ids:
+            current_model = DEFAULT_MODEL
+        current_idx = flash_ids.index(current_model) if current_model in flash_ids else 0
+
+        selected_label = st.sidebar.selectbox(
+            "🧪 LLM Model",
+            flash_labels,
+            index=current_idx,
+            key="sb_model",
+            help="Choose which Gemini model powers the answers.",
+        )
+        s["model"] = flash_ids[flash_labels.index(selected_label)]
+        s["subagent_model"] = None
 
     if not s["agent_mode"]:
         with st.sidebar.expander("⚙️ Pipeline Settings", expanded=False):
@@ -388,6 +446,7 @@ def _process_question_api(question: str) -> ChatMessage:
                 "use_vector": s["use_vector"],
                 "use_llm": s["use_llm"],
                 "n_results": s["n_results"],
+                "model": s.get("model"),
             },
             timeout=180,
         )
@@ -487,6 +546,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             json={
                 "question": question,
                 "session_id": st.session_state.get("agent_session_id"),
+                "model": st.session_state.settings.get("model"),
             },
             timeout=180,
         )
@@ -512,7 +572,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
                 content=f"⚠️ {error}",
                 error=error,
                 llm_provider="agent",
-                llm_model="gemini-2.5-flash",
+                llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             )
 
         # Use structured data returned by the agent
@@ -528,7 +588,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash",
+            llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
@@ -569,6 +629,8 @@ def _process_question_multi_api(question: str) -> ChatMessage:
             json={
                 "question": question,
                 "session_id": st.session_state.get("agent_session_id"),
+                "model": st.session_state.settings.get("model"),
+                "subagent_model": st.session_state.settings.get("subagent_model"),
             },
             timeout=180,
         )
@@ -592,7 +654,7 @@ def _process_question_multi_api(question: str) -> ChatMessage:
                 content=f"⚠️ {error}",
                 error=error,
                 llm_provider="multi-agent",
-                llm_model="gemini-2.5-flash",
+                llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             )
 
         graph_raw = data.get("graph_data", {})
@@ -607,7 +669,7 @@ def _process_question_multi_api(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="multi-agent",
-            llm_model="gemini-2.5-flash",
+            llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             error=error,
             agent_tool_calls=tool_calls,
             agent_tool_results=tool_results,
@@ -638,9 +700,13 @@ def _process_question_multi_local(question: str) -> ChatMessage:
     try:
         from pharmagraphrag.agent.multi import run_multi_agent
 
+        selected_model = st.session_state.settings.get("model")
+        subagent_model = st.session_state.settings.get("subagent_model")
         result = run_multi_agent(
             question,
             thread_id=st.session_state.get("agent_session_id"),
+            model=selected_model,
+            subagent_model=subagent_model,
         )
 
         if result.error and not result.answer:
@@ -649,7 +715,7 @@ def _process_question_multi_local(question: str) -> ChatMessage:
                 content=f"⚠️ {result.error}",
                 error=result.error,
                 llm_provider="multi-agent",
-                llm_model="gemini-2.5-flash",
+                llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             )
 
         tc_list = result.tool_calls if result.tool_calls else []
@@ -664,7 +730,7 @@ def _process_question_multi_local(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="multi-agent",
-            llm_model="gemini-2.5-flash",
+            llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
@@ -689,9 +755,11 @@ def _process_question_agent_local(question: str) -> ChatMessage:
     try:
         from pharmagraphrag.agent.graph import run_agent
 
+        selected_model = st.session_state.settings.get("model")
         result = run_agent(
             question,
             thread_id=st.session_state.get("agent_session_id"),
+            model=selected_model,
         )
 
         # Show error as content if no answer was generated
@@ -701,7 +769,7 @@ def _process_question_agent_local(question: str) -> ChatMessage:
                 content=f"⚠️ {result.error}",
                 error=result.error,
                 llm_provider="agent",
-                llm_model="gemini-2.5-flash",
+                llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             )
 
         # Format tool calls/results for structured storage
@@ -719,7 +787,7 @@ def _process_question_agent_local(question: str) -> ChatMessage:
             drugs_extracted=drugs,
             drugs_found=drugs,
             llm_provider="agent",
-            llm_model="gemini-2.5-flash",
+            llm_model=st.session_state.settings.get("model", "gemini-2.5-flash"),
             error=result.error,
             agent_tool_calls=tc_list,
             agent_tool_results=tr_list,
@@ -773,6 +841,7 @@ def _process_question_local(question: str) -> ChatMessage:
                 system_prompt=result.system_prompt,
                 user_prompt=result.user_prompt,
                 provider=s["llm_provider"],
+                model=s.get("model"),
             )
             answer = llm_resp.text
             llm_provider = llm_resp.provider

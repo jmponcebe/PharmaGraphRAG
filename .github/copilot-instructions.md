@@ -281,6 +281,7 @@ PharmaGraphRAG/
 - Conventional commits (feat:, fix:, docs:, refactor:, test:, ci:)
 - Branch: main (protected) + feature branches
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
+- **Deploy rule**: NEVER create version tags or trigger deployments without explicit user confirmation. Commits and pushes to main are fine; tags (v*) require user approval.
 
 ### Testing (198 tests)
 - pytest with fixtures for sample data and mocked services

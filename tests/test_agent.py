@@ -451,7 +451,7 @@ class TestAgentEndpoint:
             json={"question": "follow up question", "session_id": "sess-123"},
         )
         assert resp.status_code == 200
-        mock_agent.assert_called_once_with("follow up question", thread_id="sess-123")
+        mock_agent.assert_called_once_with("follow up question", thread_id="sess-123", model=None)
 
     @patch("pharmagraphrag.agent.graph.run_agent")
     def test_agent_query_without_session_id(self, mock_agent):
@@ -463,7 +463,7 @@ class TestAgentEndpoint:
             json={"question": "stateless question"},
         )
         assert resp.status_code == 200
-        mock_agent.assert_called_once_with("stateless question", thread_id=None)
+        mock_agent.assert_called_once_with("stateless question", thread_id=None, model=None)
 
 
 # ===========================================================================
@@ -608,7 +608,9 @@ class TestMultiAgentEndpoint:
             json={"question": "follow up about aspirin", "session_id": "multi-sess"},
         )
         assert resp.status_code == 200
-        mock_multi.assert_called_once_with("follow up about aspirin", thread_id="multi-sess")
+        mock_multi.assert_called_once_with(
+            "follow up about aspirin", thread_id="multi-sess", model=None, subagent_model=None
+        )
 
     @patch("pharmagraphrag.agent.multi.run_multi_agent")
     def test_multi_query_exception(self, mock_multi):
@@ -620,3 +622,97 @@ class TestMultiAgentEndpoint:
     def test_multi_query_validation_error(self):
         resp = client.post("/agent/multi", json={"question": "ab"})
         assert resp.status_code == 422
+
+
+# ===========================================================================
+# Model selector
+# ===========================================================================
+
+
+class TestModelSelector:
+    """Tests for configurable model selection."""
+
+    def test_query_request_accepts_model(self):
+        from pharmagraphrag.api.models import QueryRequest
+
+        req = QueryRequest(question="test question?", model="gemini-2.5-pro")
+        assert req.model == "gemini-2.5-pro"
+
+    def test_query_request_model_defaults_none(self):
+        from pharmagraphrag.api.models import QueryRequest
+
+        req = QueryRequest(question="test question?")
+        assert req.model is None
+
+    def test_agent_request_accepts_model(self):
+        from pharmagraphrag.api.models import AgentQueryRequest
+
+        req = AgentQueryRequest(question="test question?", model="gemini-3-flash-preview")
+        assert req.model == "gemini-3-flash-preview"
+
+    def test_agent_request_accepts_subagent_model(self):
+        from pharmagraphrag.api.models import AgentQueryRequest
+
+        req = AgentQueryRequest(
+            question="test?", model="gemini-2.5-pro", subagent_model="gemini-2.5-flash"
+        )
+        assert req.model == "gemini-2.5-pro"
+        assert req.subagent_model == "gemini-2.5-flash"
+
+    def test_agent_request_subagent_model_defaults_none(self):
+        from pharmagraphrag.api.models import AgentQueryRequest
+
+        req = AgentQueryRequest(question="test question?")
+        assert req.subagent_model is None
+
+    def test_flash_models_defined(self):
+        from pharmagraphrag.config import FLASH_MODELS
+
+        assert len(FLASH_MODELS) >= 3
+        ids = [m["id"] for m in FLASH_MODELS]
+        assert "gemini-2.5-flash" in ids
+
+    def test_pro_models_defined(self):
+        from pharmagraphrag.config import PRO_MODELS
+
+        assert len(PRO_MODELS) >= 1
+        ids = [m["id"] for m in PRO_MODELS]
+        assert "gemini-2.5-pro" in ids
+
+    def test_default_model_is_flash(self):
+        from pharmagraphrag.config import DEFAULT_MODEL
+
+        assert DEFAULT_MODEL == "gemini-2.5-flash"
+
+    @patch("pharmagraphrag.agent.graph.run_agent")
+    def test_agent_endpoint_passes_model(self, mock_agent):
+        mock_agent.return_value = AgentResponse(answer="ok")
+
+        resp = client.post(
+            "/agent/query",
+            json={"question": "test model passing", "model": "gemini-3-flash-preview"},
+        )
+        assert resp.status_code == 200
+        mock_agent.assert_called_once_with(
+            "test model passing", thread_id=None, model="gemini-3-flash-preview"
+        )
+
+    @patch("pharmagraphrag.agent.multi.run_multi_agent")
+    def test_multi_endpoint_passes_both_models(self, mock_multi):
+        mock_multi.return_value = AgentResponse(answer="ok")
+
+        resp = client.post(
+            "/agent/multi",
+            json={
+                "question": "test dual models",
+                "model": "gemini-2.5-pro",
+                "subagent_model": "gemini-2.5-flash-lite",
+            },
+        )
+        assert resp.status_code == 200
+        mock_multi.assert_called_once_with(
+            "test dual models",
+            thread_id=None,
+            model="gemini-2.5-pro",
+            subagent_model="gemini-2.5-flash-lite",
+        )

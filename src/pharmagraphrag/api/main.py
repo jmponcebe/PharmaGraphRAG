@@ -99,6 +99,7 @@ def query(req: QueryRequest) -> QueryResponse:
             llm_resp = generate_answer(
                 system_prompt=result.system_prompt,
                 user_prompt=result.user_prompt,
+                model=req.model,
             )
             answer = llm_resp.text
             llm_model = llm_resp.model
@@ -216,7 +217,7 @@ def agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
     from pharmagraphrag.agent.graph import run_agent
 
     try:
-        result = run_agent(req.question, thread_id=req.session_id)
+        result = run_agent(req.question, thread_id=req.session_id, model=req.model)
 
         # If the agent hit rate limits, fall back to classic pipeline
         if not result.ok and result.error and "rate limit" in result.error.lower():
@@ -256,7 +257,12 @@ def multi_agent_query(req: AgentQueryRequest) -> AgentQueryResponse:
     from pharmagraphrag.agent.multi import run_multi_agent
 
     try:
-        result = run_multi_agent(req.question, thread_id=req.session_id)
+        result = run_multi_agent(
+            req.question,
+            thread_id=req.session_id,
+            model=req.model,
+            subagent_model=req.subagent_model,
+        )
 
         if not result.ok and result.error and "rate limit" in result.error.lower():
             logger.info("Multi-agent rate-limited, falling back to classic pipeline")

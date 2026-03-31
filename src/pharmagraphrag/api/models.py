@@ -28,6 +28,10 @@ class QueryRequest(BaseModel):
     use_vector: bool = Field(True, description="Include vector store context.")
     use_llm: bool = Field(True, description="Generate an LLM answer (False = retrieval only).")
     n_results: int = Field(5, ge=1, le=20, description="Max vector search results.")
+    model: str | None = Field(
+        default=None,
+        description="LLM model to use (e.g. 'gemini-2.5-flash'). Uses server default if not set.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +105,14 @@ class AgentQueryRequest(BaseModel):
         default=None,
         description="Session ID for conversation memory. Messages within the same session are remembered.",
         examples=["abc123"],
+    )
+    model: str | None = Field(
+        default=None,
+        description="LLM model to use (e.g. 'gemini-2.5-flash'). Uses server default if not set.",
+    )
+    subagent_model: str | None = Field(
+        default=None,
+        description="LLM model for sub-agents in multi-agent mode. Falls back to 'model' if not set.",
     )
 
 

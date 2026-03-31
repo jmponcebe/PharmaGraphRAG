@@ -20,7 +20,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
 
-from pharmagraphrag.agent.graph import AGENT_MODEL, AgentResponse, StructuredResponse
+from pharmagraphrag.agent.graph import AgentResponse, StructuredResponse
 from pharmagraphrag.agent.tools import (
     compare_drugs,
     find_drugs_by_category,
@@ -32,7 +32,7 @@ from pharmagraphrag.agent.tools import (
     search_drug_labels,
     search_drugs_by_name,
 )
-from pharmagraphrag.config import get_settings
+from pharmagraphrag.config import DEFAULT_MODEL, get_settings
 
 # ---------------------------------------------------------------------------
 # Sub-agent definitions
@@ -89,39 +89,46 @@ LITERATURE_RESEARCHER_TOOLS = [
 # Build sub-agents (lazy, no checkpointer — state is in supervisor)
 # ---------------------------------------------------------------------------
 
-_sub_agents: dict[str, Any] = {}
+# Keyed by (model, agent_name) for per-model caching
+_sub_agents: dict[tuple[str, str], Any] = {}
 
 # Stores inner tool calls from the most recent sub-agent execution.
 # Keyed by sub-agent name (drug_expert, safety_analyst, literature_researcher).
 # Populated by _run_sub_agent, consumed by run_multi_agent.
 _last_inner_tool_calls: dict[str, dict[str, Any]] = {}
 
+# Active model for current multi-agent invocation (set by run_multi_agent)
+_active_model: str = DEFAULT_MODEL
 
-def _get_llm():
+
+def _get_llm(model: str | None = None):
+    model = model or _active_model
     settings = get_settings()
     return ChatGoogleGenerativeAI(
-        model=AGENT_MODEL,
+        model=model,
         google_api_key=settings.gemini_api_key,
         temperature=0.3,
         max_output_tokens=2048,
     )
 
 
-def _get_sub_agent(name: str):
-    if name not in _sub_agents:
-        llm = _get_llm()
+def _get_sub_agent(name: str, model: str | None = None):
+    model = model or _active_model
+    cache_key = (model, name)
+    if cache_key not in _sub_agents:
+        llm = _get_llm(model)
         configs = {
             "drug_expert": (DRUG_EXPERT_PROMPT, DRUG_EXPERT_TOOLS),
             "safety_analyst": (SAFETY_ANALYST_PROMPT, SAFETY_ANALYST_TOOLS),
             "literature_researcher": (LITERATURE_RESEARCHER_PROMPT, LITERATURE_RESEARCHER_TOOLS),
         }
         prompt, tools = configs[name]
-        _sub_agents[name] = create_react_agent(
+        _sub_agents[cache_key] = create_react_agent(
             model=llm,
             tools=tools,
             prompt=prompt,
         )
-    return _sub_agents[name]
+    return _sub_agents[cache_key]
 
 
 def _run_sub_agent(name: str, question: str) -> str:
@@ -130,7 +137,7 @@ def _run_sub_agent(name: str, question: str) -> str:
     Also stores inner tool calls in _last_inner_tool_calls for the
     supervisor to include in the response.
     """
-    agent = _get_sub_agent(name)
+    agent = _get_sub_agent(name, _active_model)
     try:
         result = agent.invoke({"messages": [("user", question)]})
         messages = result.get("messages", [])
@@ -257,34 +264,44 @@ This data is for educational purposes only, not clinical decisions.
 """
 
 _checkpointer = MemorySaver()
-_supervisor = None
+_supervisors: dict[str, Any] = {}
 
 
-def _get_supervisor():
-    global _supervisor
-    if _supervisor is None:
-        llm = _get_llm()
-        _supervisor = create_react_agent(
+def _get_supervisor(model: str | None = None):
+    model = model or DEFAULT_MODEL
+    if model not in _supervisors:
+        llm = _get_llm(model)
+        _supervisors[model] = create_react_agent(
             model=llm,
             tools=SUPERVISOR_TOOLS,
             prompt=SUPERVISOR_PROMPT,
             response_format=StructuredResponse,
             checkpointer=_checkpointer,
         )
-    return _supervisor
+    return _supervisors[model]
 
 
-def run_multi_agent(question: str, thread_id: str | None = None) -> AgentResponse:
+def run_multi_agent(
+    question: str,
+    thread_id: str | None = None,
+    model: str | None = None,
+    subagent_model: str | None = None,
+) -> AgentResponse:
     """Run the multi-agent supervisor on a user question.
 
     Args:
         question: The user's natural language question.
         thread_id: Optional session ID for conversation memory.
+        model: LLM model for the supervisor. Defaults to DEFAULT_MODEL.
+        subagent_model: LLM model for sub-agents. Falls back to ``model``.
 
     Returns:
         AgentResponse with the synthesized answer and tool call trace.
     """
-    supervisor = _get_supervisor()
+    global _active_model
+    _active_model = subagent_model or model or DEFAULT_MODEL
+    supervisor_model = model or DEFAULT_MODEL
+    supervisor = _get_supervisor(supervisor_model)
     config = {"configurable": {"thread_id": thread_id or "default"}}
 
     try:

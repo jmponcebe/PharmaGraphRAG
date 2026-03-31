@@ -17,7 +17,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from pharmagraphrag.agent.tools import ALL_TOOLS
-from pharmagraphrag.config import get_settings
+from pharmagraphrag.config import DEFAULT_MODEL, get_settings
 
 SYSTEM_PROMPT = """\
 You are a pharmaceutical knowledge assistant with access to tools that query
@@ -101,8 +101,8 @@ class AgentResponse:
         return self.error is None and bool(self.answer)
 
 
-# Agent uses the same model as classic mode (paid tier has 10K RPD, enough for both)
-AGENT_MODEL = "gemini-2.5-flash"
+# Default model for agents (can be overridden per-request)
+AGENT_MODEL = DEFAULT_MODEL
 
 # Simple in-memory response cache to avoid wasting RPD on repeated questions
 _response_cache: dict[str, AgentResponse] = {}
@@ -112,13 +112,17 @@ _CACHE_MAX_SIZE = 50
 # In-memory checkpointer for conversation memory (multi-turn)
 _checkpointer = MemorySaver()
 
+# Agent cache — one agent per model for lazy reuse
+_agents: dict[str, Any] = {}
 
-def _build_agent():
+
+def _build_agent(model: str | None = None):
     """Create the LangGraph ReAct agent with conversation memory."""
     settings = get_settings()
+    model = model or AGENT_MODEL
 
     llm = ChatGoogleGenerativeAI(
-        model=AGENT_MODEL,
+        model=model,
         google_api_key=settings.gemini_api_key,
         temperature=0.3,
         max_output_tokens=2048,
@@ -133,15 +137,11 @@ def _build_agent():
     )
 
 
-# Lazy singleton
-_agent = None
-
-
-def _get_agent():
-    global _agent
-    if _agent is None:
-        _agent = _build_agent()
-    return _agent
+def _get_agent(model: str | None = None):
+    model = model or AGENT_MODEL
+    if model not in _agents:
+        _agents[model] = _build_agent(model)
+    return _agents[model]
 
 
 def _collect_structured_data(
@@ -226,13 +226,18 @@ def _collect_structured_data(
     return graph_data, vector_data
 
 
-def run_agent(question: str, thread_id: str | None = None) -> AgentResponse:
+def run_agent(
+    question: str,
+    thread_id: str | None = None,
+    model: str | None = None,
+) -> AgentResponse:
     """Run the ReAct agent on a user question.
 
     Args:
         question: The user's natural language question.
         thread_id: Optional session ID for conversation memory. When provided,
             the agent remembers previous messages in the same thread.
+        model: LLM model to use. Defaults to AGENT_MODEL.
 
     Returns:
         AgentResponse with the answer and tool call history.
@@ -243,7 +248,7 @@ def run_agent(question: str, thread_id: str | None = None) -> AgentResponse:
         logger.info("Agent cache hit for: '{}'", question[:60])
         return _response_cache[cache_key]
 
-    agent = _get_agent()
+    agent = _get_agent(model)
 
     # Config with thread_id for checkpointer (conversation memory)
     config = {"configurable": {"thread_id": thread_id or "default"}}
