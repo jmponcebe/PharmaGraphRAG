@@ -304,6 +304,15 @@ def run_multi_agent(
     supervisor = _get_supervisor(supervisor_model)
     config = {"configurable": {"thread_id": thread_id or "default"}}
 
+    # Add Langfuse tracing if enabled
+    from pharmagraphrag.observability import build_callback_config
+
+    config = build_callback_config(
+        session_id=thread_id,
+        tags=["multi-agent", "supervisor"],
+        existing_config=config,
+    )
+
     try:
         from langchain_core.messages import ToolMessage
 
