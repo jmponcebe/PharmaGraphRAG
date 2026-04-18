@@ -308,7 +308,7 @@ def run_multi_agent(
     from pharmagraphrag.observability import build_callback_config
 
     config = build_callback_config(
-        session_id=thread_id,
+        session_id=thread_id or "default",
         tags=["multi-agent", "supervisor"],
         existing_config=config,
     )

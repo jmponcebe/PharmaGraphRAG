@@ -28,6 +28,7 @@ from loguru import logger
 from pharmagraphrag.config import get_settings
 
 _langfuse_initialized = False
+_langfuse_disabled = False
 
 
 def _ensure_initialized() -> bool:
@@ -35,16 +36,20 @@ def _ensure_initialized() -> bool:
 
     Returns True if Langfuse is available and configured.
     """
-    global _langfuse_initialized
+    global _langfuse_initialized, _langfuse_disabled
     if _langfuse_initialized:
         return True
+    if _langfuse_disabled:
+        return False
 
     settings = get_settings()
     if not settings.langfuse_enabled:
+        _langfuse_disabled = True
         return False
 
     if not settings.langfuse_public_key or not settings.langfuse_secret_key:
         logger.warning("Langfuse enabled but API keys not set — tracing disabled")
+        _langfuse_disabled = True
         return False
 
     try:
@@ -126,8 +131,8 @@ def build_callback_config(
     callbacks = [*list(callbacks), handler]
     config["callbacks"] = callbacks
 
-    # Add langfuse metadata for trace attributes
-    meta = config.get("metadata", {})
+    # Add langfuse metadata for trace attributes (copy to avoid mutation)
+    meta = dict(config.get("metadata", {}))
     if session_id:
         meta["langfuse_session_id"] = session_id
     if user_id:
@@ -142,7 +147,6 @@ def build_callback_config(
 def observe_fn(
     *,
     name: str | None = None,
-    as_type: str = "span",
 ) -> Callable:
     """Decorator that wraps a function with Langfuse @observe tracing.
 
@@ -151,16 +155,23 @@ def observe_fn(
     """
 
     def decorator(func: Callable) -> Callable:
+        traced_func: Callable | None = None
+
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            nonlocal traced_func
+
+            if traced_func is not None:
+                return traced_func(*args, **kwargs)
+
             if not _ensure_initialized():
                 return func(*args, **kwargs)
 
             try:
                 from langfuse import observe
 
-                traced = observe(name=name or func.__name__)(func)
-                return traced(*args, **kwargs)
+                traced_func = observe(name=name or func.__name__)(func)
+                return traced_func(*args, **kwargs)
             except Exception:
                 return func(*args, **kwargs)
 
