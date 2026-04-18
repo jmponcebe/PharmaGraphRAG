@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     # --- App ---
     log_level: str = "INFO"
 
+    # --- Langfuse (observability) ---
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_enabled: bool = False
+
     # --- FAERS ---
     faers_quarters: list[str] = ["2024Q3", "2024Q4"]
 

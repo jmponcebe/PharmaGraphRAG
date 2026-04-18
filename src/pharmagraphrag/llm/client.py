@@ -256,4 +256,17 @@ def generate_answer(
         else:
             response = _generate_ollama(system_prompt, user_prompt, **kwargs)
 
+    # Log to Langfuse if enabled
+    from pharmagraphrag.observability import trace_generation
+
+    if response.ok:
+        trace_generation(
+            name=f"llm-{response.provider}",
+            model=response.model,
+            input_text=user_prompt[:2000],
+            output_text=response.text[:2000],
+            usage=response.usage if response.usage else None,
+            metadata={"provider": response.provider},
+        )
+
     return response

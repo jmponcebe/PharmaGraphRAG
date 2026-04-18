@@ -12,6 +12,8 @@ Usage:
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from loguru import logger
 
@@ -28,6 +30,22 @@ from pharmagraphrag.api.models import (
     ToolResultInfo,
 )
 
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Startup / shutdown hooks."""
+    # Eagerly init Langfuse so the first request isn't slowed down
+    from pharmagraphrag.observability import is_enabled as _lf_enabled
+
+    if _lf_enabled():
+        logger.info("Langfuse tracing active")
+    yield
+    # Flush pending traces on shutdown
+    from pharmagraphrag.observability import flush as _lf_flush
+
+    _lf_flush()
+
+
 app = FastAPI(
     title="PharmaGraphRAG",
     description=(
@@ -35,6 +53,7 @@ app = FastAPI(
         "using FDA FAERS data, DailyMed labels, and LLM-powered answers."
     ),
     version=__version__,
+    lifespan=_lifespan,
 )
 
 

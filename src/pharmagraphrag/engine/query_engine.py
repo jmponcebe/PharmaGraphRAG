@@ -164,6 +164,25 @@ def process_query(
     """
     logger.info("Processing query: '{}'", question[:100])
 
+    # Langfuse trace for classic pipeline
+    from pharmagraphrag.observability import is_enabled as _langfuse_on
+
+    _use_langfuse = _langfuse_on()
+    _langfuse_span = None
+    if _use_langfuse:
+        try:
+            from langfuse import get_client
+
+            _lf = get_client()
+            _langfuse_span = _lf.start_as_current_observation(
+                as_type="span",
+                name="classic-pipeline",
+                input={"question": question},
+            )
+            _langfuse_span.__enter__()
+        except Exception:
+            _langfuse_span = None
+
     # 1. Entity extraction
     entities = extract_entities(
         question,
@@ -203,5 +222,19 @@ def process_query(
         len(result.user_prompt),
         context.drugs_found,
     )
+
+    if _langfuse_span is not None:
+        try:
+            _langfuse_span.update(
+                output={
+                    "drugs_extracted": entities.drugs,
+                    "drugs_found": context.drugs_found,
+                    "has_graph": context.has_graph,
+                    "has_vector": context.has_vector,
+                },
+            )
+            _langfuse_span.__exit__(None, None, None)
+        except Exception:
+            pass
 
     return result
