@@ -26,7 +26,7 @@ All three development phases are finished. The system is fully operational end-t
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
 | Evaluation | Complete | `src/pharmagraphrag/evaluation/` (RAGAS metrics, agent eval, curated testset) |
-| Tests | 261 passing | `tests/` |
+| Tests | 263 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -320,8 +320,8 @@ PharmaGraphRAG/
 | test_ui.py | 14 | Streamlit components, session state |
 | test_agent.py | 61 | 9 tools, AgentResponse, StructuredResponse, multi-agent supervisor, model selector, endpoints |
 | test_observability.py | 13 | Langfuse init, callback handler, config builder, decorator, trace generation, flush |
-| test_evaluation.py | 40 | RAGAS metrics, dataset loading, runner, agent tool eval, CSV export |
-| **Total** | **261** | |
+| test_evaluation.py | 42 | RAGAS metrics, dataset loading, runner, agent tool eval, call_agent parsing, CSV export |
+| **Total** | **263** | |
 
 ### Evaluation (RAGAS)
 - **Framework**: RAGAS 0.4.3 with Gemini via OpenAI-compatible endpoint

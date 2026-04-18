@@ -3,7 +3,7 @@
 [![CI](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/ci.yml)
 [![CD](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml/badge.svg)](https://github.com/jmponcebe/PharmaGraphRAG/actions/workflows/deploy.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-261%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-263%20passing-brightgreen.svg)](#testing)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-pharmagraphrag.streamlit.app-FF4B4B.svg)](https://pharmagraphrag.streamlit.app)
@@ -66,7 +66,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 - **Agent Mode**: LangGraph ReAct agent that autonomously decides which tools to call (9 tools: drug info, adverse events, interactions, labels, drug search, event search, outcomes, comparison, categories) based on the question. Includes conversation memory, structured output (confidence + follow-ups), multi-agent supervisor with 3 specialized experts, per-query model selector (Flash for agents, Pro for supervisor), response caching and graceful fallback to classic pipeline
 - **Transparent UI**: clickable follow-up suggestions, confidence level tooltips, pipeline steps expander (classic mode), nested sub-agent reasoning hierarchy (multi-agent mode)
 - **Real FDA data**: 816K adverse event reports, 4,998 drugs, 365K causal relationships, 88 drug labels
-- **261 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
+- **263 tests** with CI/CD on GitHub Actions (Python 3.11 + 3.13 matrix)
 - **Full stack**: data pipeline → knowledge graph → vector store → query engine → REST API → chat UI
 - **One-click Codespaces**: try it instantly from your browser
 
@@ -75,7 +75,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 > *"What are the side effects of ibuprofen?"* · *"Does metformin interact with other drugs?"* · *"Compare the safety profiles of aspirin and clopidogrel"* · *"What drugs cause liver damage?"*
 
 <details>
-<summary><strong>Component Status</strong> — all modules complete, 261 tests passing</summary>
+<summary><strong>Component Status</strong> — all modules complete, 263 tests passing</summary>
 
 | Component | Status | Details |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ A production-ready question-answering system that combines a **pharmaceutical kn
 | CI/CD | ✅ Complete | GitHub Actions: lint, test matrix (3.11/3.13), Docker build |
 | Agent Mode | ✅ Complete | LangGraph ReAct agent with 9 tools, conversation memory, structured output, multi-agent supervisor, nested reasoning |
 | Evaluation | ✅ Complete | RAGAS 0.4.3 (Faithfulness, Relevancy, Precision, Recall, Correctness) + agent tool accuracy (P/R/F1) |
-| Tests | ✅ 261 passing | Data (29) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (61) + observability (13) + evaluation (40) |
+| Tests | ✅ 263 passing | Data (29) + vectors (35) + engine (37) + LLM (14) + API (18) + UI (14) + agent (61) + observability (13) + evaluation (42) |
 
 </details>
 
@@ -232,7 +232,7 @@ In Agent Mode, the LLM autonomously decides which tools to call:
 | UI | Streamlit + streamlit-agraph (graph visualization) |
 | Containers | Docker Compose (multi-stage, non-root, healthchecks) |
 | CI/CD | GitHub Actions (CI: lint + test matrix; CD: v* tags → Cloud Build → Cloud Run) |
-| Testing | pytest (261 tests, mocked services) |
+| Testing | pytest (263 tests, mocked services) |
 | Linting | ruff (check + format) |
 
 ## Data Sources
@@ -399,7 +399,7 @@ gcloud run deploy pharmagraphrag-api --image gcr.io/<project>/pharmagraphrag-api
 ### Testing
 
 ```bash
-uv run pytest               # Run all 261 tests
+uv run pytest               # Run all 263 tests
 uv run pytest -v             # Verbose output
 uv run pytest tests/test_engine.py  # Specific module
 ```
