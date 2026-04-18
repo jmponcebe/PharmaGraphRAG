@@ -97,7 +97,7 @@ def to_ragas_dataset(dataset: EvalDataset) -> list[dict[str, Any]]:
     """
     ragas_samples = []
     for sample in dataset.samples:
-        if not sample.answer:
+        if not sample.answer or not sample.contexts:
             continue
         entry = {
             "user_input": sample.question,

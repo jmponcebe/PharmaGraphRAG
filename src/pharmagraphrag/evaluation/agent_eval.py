@@ -64,7 +64,7 @@ def evaluate_tool_selection(sample: EvalSample) -> AgentEvalResult:
             tool_precision=1.0,
             tool_recall=1.0,
             tool_f1=1.0,
-            goal_achieved=bool(sample.answer),
+            goal_achieved=bool(sample.answer and "ERROR" not in sample.answer),
         )
 
     true_positives = len(expected & actual)

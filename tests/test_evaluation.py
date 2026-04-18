@@ -26,6 +26,7 @@ from pharmagraphrag.evaluation.metrics import EvalResult, MetricResult, score_sa
 from pharmagraphrag.evaluation.runner import (
     PipelineResponse,
     RunConfig,
+    _call_agent,
     _call_classic,
     compute_summary,
     evaluate_sample,
@@ -314,6 +315,50 @@ class TestCallClassic:
         assert "Connection refused" in resp.error
 
 
+class TestCallAgent:
+    @patch("pharmagraphrag.evaluation.runner.httpx.post")
+    def test_parses_agent_response(self, mock_post):
+        """Verify _call_agent correctly parses tool_results, vector_data, and tool_calls."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "answer": "Aspirin interacts with Warfarin.",
+            "tool_calls": [
+                {"tool": "search_drug_info", "args": {}},
+                {"tool": "list_drug_interactions", "args": {}},
+            ],
+            "tool_results": [
+                {"tool": "search_drug_info", "content": "Drug info context"},
+                {"tool": "list_drug_interactions", "content": "Interaction context"},
+            ],
+            "vector_data": [
+                {"text": "Vector snippet about aspirin"},
+                {"snippet": "Another vector snippet"},
+            ],
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        config = RunConfig(api_url="http://test:8000")
+        resp = _call_agent("test question?", config)
+
+        assert resp.answer == "Aspirin interacts with Warfarin."
+        assert resp.tool_calls == ["search_drug_info", "list_drug_interactions"]
+        assert len(resp.contexts) == 4  # 2 tool_results + 2 vector_data
+        assert "Drug info context" in resp.contexts
+        assert "Vector snippet about aspirin" in resp.contexts
+        assert resp.error is None
+
+    @patch("pharmagraphrag.evaluation.runner.httpx.post")
+    def test_handles_error(self, mock_post):
+        mock_post.side_effect = Exception("Timeout")
+
+        config = RunConfig(api_url="http://test:8000")
+        resp = _call_agent("test?", config)
+
+        assert resp.error is not None
+        assert "Timeout" in resp.error
+
+
 class TestRunPipeline:
     @patch("pharmagraphrag.evaluation.runner._call_classic")
     def test_routes_to_classic(self, mock_classic):
@@ -536,8 +581,10 @@ class TestDefaultTestset:
         """Verify the curated testset file exists and loads."""
         from pharmagraphrag.evaluation.dataset import DEFAULT_TESTSET_PATH
 
-        if DEFAULT_TESTSET_PATH.exists():
-            dataset = load_testset()
-            assert len(dataset) >= 20
-            assert all(s.question for s in dataset.samples)
-            assert all(s.reference for s in dataset.samples)
+        assert DEFAULT_TESTSET_PATH.exists(), (
+            f"Expected curated default testset at {DEFAULT_TESTSET_PATH}"
+        )
+        dataset = load_testset()
+        assert len(dataset) >= 20
+        assert all(s.question for s in dataset.samples)
+        assert all(s.reference for s in dataset.samples)
