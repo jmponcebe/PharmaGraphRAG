@@ -25,7 +25,8 @@ All three development phases are finished. The system is fully operational end-t
 | Observability | Complete | `src/pharmagraphrag/observability.py` (Langfuse tracing) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
 | CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
-| Tests | 221 passing | `tests/` |
+| Evaluation | Complete | `src/pharmagraphrag/evaluation/` (RAGAS metrics, agent eval, curated testset) |
+| Tests | 261 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
 
 ### Data at a Glance
@@ -102,7 +103,8 @@ FDA FAERS (CSV) + DailyMed (API)
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
 - **CI/CD**: GitHub Actions (ci.yml: lint+test on push; deploy.yml: CD on v* tags via Cloud Build)
-- **Testing**: pytest (221 tests passing)
+- **Evaluation**: RAGAS 0.4.3 (Faithfulness, Relevancy, Precision, Recall, Correctness) + custom agent tool accuracy
+- **Testing**: pytest (261 tests passing)
 - **CI/CD**: GitHub Actions (ci.yml: lint + test matrix 3.11/3.13; deploy.yml: v* tags → Cloud Build → Cloud Run)
 - **Cloud Build**: Google Cloud Build (cloudbuild.yaml) — downloads ChromaDB from GCS, builds Docker, deploys
 - **Object Storage**: Google Cloud Storage (gs://pharmagraphrag-data for ChromaDB snapshots)
@@ -170,10 +172,19 @@ PharmaGraphRAG/
 |   |   +-- __init__.py
 |   |   +-- main.py                # FastAPI app: POST /query, POST /agent/query, POST /agent/multi, GET /drug/{name}, GET /health
 |   |   +-- models.py              # Pydantic v2 request/response schemas (incl. AgentQueryRequest/Response)
+|   +-- evaluation/
+|   |   +-- __init__.py
+|   |   +-- metrics.py             # RAGAS metric wrappers (Faithfulness, Relevancy, Precision, Recall, Correctness)
+|   |   +-- dataset.py             # Curated testset loader, EvalSample/EvalDataset
+|   |   +-- runner.py              # Batch evaluation runner (calls API, computes RAGAS scores, exports CSV)
+|   |   +-- agent_eval.py          # Agent tool selection accuracy (precision/recall/F1)
 |   +-- ui/
 |       +-- __init__.py
 |       +-- app.py                 # Streamlit chat: clickable follow-ups, confidence tooltips, pipeline steps (classic), nested sub-agent reasoning (multi)
 |       +-- components.py          # Graph viz, sources panel, drug explorer
++-- data/
+|   +-- evaluation/
+|       +-- testset.json           # 25 curated evaluation questions (8 types, ground truth, expected tools)
 +-- tests/
 |   +-- __init__.py
 |   +-- test_download_faers.py     # 2 tests
@@ -186,9 +197,11 @@ PharmaGraphRAG/
 |   +-- test_ui.py                 # 14 tests (Streamlit components + session state)
 |   +-- test_agent.py              # 61 tests (9 tools, AgentResponse, StructuredResponse, multi-agent, endpoints)
 |   +-- test_observability.py      # 13 tests (Langfuse init, callbacks, decorator, graceful degradation)
+|   +-- test_evaluation.py         # 40 tests (dataset, metrics, runner, agent eval, all mocked)
 +-- scripts/
 |   +-- load_vectorstore.py        # One-off: populate ChromaDB
 |   +-- validate_search.py         # One-off: test semantic search queries
+|   +-- run_evaluation.py          # Batch eval: --mode classic|agent|multi|all, exports CSV reports
 |   +-- setup_demo.py              # Demo setup: load graph + embeddings (~3 min)
 |   +-- migrate_neo4j.py           # Migrate data between Neo4j instances
 +-- docker/
@@ -287,7 +300,7 @@ PharmaGraphRAG/
 - .gitignore: data/raw/, data/processed/, data/chroma/, .env, __pycache__, .pytest_cache
 - **Deploy rule**: NEVER create version tags or trigger deployments without explicit user confirmation. Commits and pushes to main are fine; tags (v*) require user approval.
 
-### Testing (208 tests)
+### Testing (261 tests)
 - pytest with fixtures for sample data and mocked services
 - Mock Neo4j driver for graph tests
 - Mock LLM API calls (never call real API in tests)
@@ -307,7 +320,17 @@ PharmaGraphRAG/
 | test_ui.py | 14 | Streamlit components, session state |
 | test_agent.py | 61 | 9 tools, AgentResponse, StructuredResponse, multi-agent supervisor, model selector, endpoints |
 | test_observability.py | 13 | Langfuse init, callback handler, config builder, decorator, trace generation, flush |
-| **Total** | **221** | |
+| test_evaluation.py | 40 | RAGAS metrics, dataset loading, runner, agent tool eval, CSV export |
+| **Total** | **261** | |
+
+### Evaluation (RAGAS)
+- **Framework**: RAGAS 0.4.3 with Gemini via OpenAI-compatible endpoint
+- **Curated testset**: 25 questions across 8 types (drug_info, interaction, adverse_event, outcome, category, comparison, multi_drug, label_search)
+- **Reference-free metrics**: Faithfulness, Answer Relevancy
+- **Reference-based metrics**: Context Precision, Context Recall, Answer Correctness
+- **Agent evaluation**: Custom tool selection accuracy (precision/recall/F1), goal achievement tracking
+- **Batch runner**: Calls API endpoints (classic/agent/multi), computes metrics, exports CSV
+- **Script**: `scripts/run_evaluation.py --mode all --api-url http://localhost:8000`
 
 ## Key Design Decisions
 
