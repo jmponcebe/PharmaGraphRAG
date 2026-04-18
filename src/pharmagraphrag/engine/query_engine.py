@@ -165,6 +165,8 @@ def process_query(
     logger.info("Processing query: '{}'", question[:100])
 
     # Langfuse trace for classic pipeline
+    from contextlib import suppress
+
     from pharmagraphrag.observability import is_enabled as _langfuse_on
 
     _use_langfuse = _langfuse_on()
@@ -183,58 +185,60 @@ def process_query(
         except Exception:
             _langfuse_span = None
 
-    # 1. Entity extraction
-    entities = extract_entities(
-        question,
-        use_neo4j=use_neo4j_entities,
-        fuzzy=fuzzy_match,
-    )
-    logger.info(
-        "Entities — drugs: {}, adverse_events: {}",
-        entities.drugs,
-        entities.adverse_events,
-    )
+    try:
+        # 1. Entity extraction
+        entities = extract_entities(
+            question,
+            use_neo4j=use_neo4j_entities,
+            fuzzy=fuzzy_match,
+        )
+        logger.info(
+            "Entities — drugs: {}, adverse_events: {}",
+            entities.drugs,
+            entities.adverse_events,
+        )
 
-    # 2. Dual retrieval
-    context = retrieve_context(
-        drugs=entities.drugs,
-        query=question,
-        n_vector_results=n_vector_results,
-        max_vector_chars=max_vector_chars,
-        use_graph=use_graph,
-        use_vector=use_vector,
-    )
+        # 2. Dual retrieval
+        context = retrieve_context(
+            drugs=entities.drugs,
+            query=question,
+            n_vector_results=n_vector_results,
+            max_vector_chars=max_vector_chars,
+            use_graph=use_graph,
+            use_vector=use_vector,
+        )
 
-    # 3. Prompt assembly
-    system_prompt = SYSTEM_PROMPT
-    user_prompt = _build_user_prompt(question, context)
+        # 3. Prompt assembly
+        system_prompt = SYSTEM_PROMPT
+        user_prompt = _build_user_prompt(question, context)
 
-    result = QueryResult(
-        question=question,
-        entities=entities,
-        context=context,
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-    )
+        result = QueryResult(
+            question=question,
+            entities=entities,
+            context=context,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
 
-    logger.info(
-        "Query result — context: {} chars, drugs found: {}",
-        len(result.user_prompt),
-        context.drugs_found,
-    )
+        logger.info(
+            "Query result — context: {} chars, drugs found: {}",
+            len(result.user_prompt),
+            context.drugs_found,
+        )
 
-    if _langfuse_span is not None:
-        try:
-            _langfuse_span.update(
-                output={
-                    "drugs_extracted": entities.drugs,
-                    "drugs_found": context.drugs_found,
-                    "has_graph": context.has_graph,
-                    "has_vector": context.has_vector,
-                },
-            )
-            _langfuse_span.__exit__(None, None, None)
-        except Exception:
-            pass
+        if _langfuse_span is not None:
+            with suppress(Exception):
+                _langfuse_span.update(
+                    output={
+                        "drugs_extracted": entities.drugs,
+                        "drugs_found": context.drugs_found,
+                        "has_graph": context.has_graph,
+                        "has_vector": context.has_vector,
+                    },
+                )
 
-    return result
+        return result
+    finally:
+        if _langfuse_span is not None:
+            with suppress(Exception):
+                _langfuse_span.__exit__(None, None, None)

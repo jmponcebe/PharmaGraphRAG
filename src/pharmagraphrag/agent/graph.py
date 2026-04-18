@@ -250,14 +250,16 @@ def run_agent(
 
     agent = _get_agent(model)
 
+    effective_thread_id = thread_id or "default"
+
     # Config with thread_id for checkpointer (conversation memory)
-    config = {"configurable": {"thread_id": thread_id or "default"}}
+    config = {"configurable": {"thread_id": effective_thread_id}}
 
     # Add Langfuse tracing if enabled
     from pharmagraphrag.observability import build_callback_config
 
     config = build_callback_config(
-        session_id=thread_id,
+        session_id=effective_thread_id,
         tags=["agent", "react"],
         existing_config=config,
     )

@@ -21,8 +21,10 @@ def _reset_state():
     import pharmagraphrag.observability as obs
 
     obs._langfuse_initialized = False
+    obs._langfuse_disabled = False
     yield
     obs._langfuse_initialized = False
+    obs._langfuse_disabled = False
 
 
 def _settings_disabled(**overrides):

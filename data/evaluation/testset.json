@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Curated evaluation testset for PharmaGraphRAG. Questions span drug interactions, adverse events, outcomes, categories, and comparisons. Ground truth derived from FAERS data and DailyMed drug labels loaded in the knowledge graph.",
+    "created": "2025-05-17",
+    "author": "Jose Maria Ponce Bernabe",
+    "question_types": ["drug_info", "interaction", "adverse_event", "outcome", "category", "comparison", "multi_drug", "label_search"]
+  },
+  "samples": [
+    {
+      "id": "q01",
+      "question": "What are the most common adverse events reported for aspirin?",
+      "reference": "Common adverse events for aspirin include gastrointestinal haemorrhage, drug interaction, nausea, and platelet aggregation decreased, based on FAERS reports.",
+      "question_type": "drug_info",
+      "expected_tools": ["search_drug_info"]
+    },
+    {
+      "id": "q02",
+      "question": "Does warfarin interact with aspirin?",
+      "reference": "Yes, warfarin interacts with aspirin. Co-administration increases the risk of bleeding. This interaction is documented in DailyMed drug labels.",
+      "question_type": "interaction",
+      "expected_tools": ["search_drug_info", "list_drug_interactions"]
+    },
+    {
+      "id": "q03",
+      "question": "What drugs are known to cause hepatotoxicity?",
+      "reference": "Drugs reported to cause hepatotoxicity in FAERS include methotrexate, acetaminophen, and several others with varying report counts.",
+      "question_type": "adverse_event",
+      "expected_tools": ["find_drugs_for_adverse_event"]
+    },
+    {
+      "id": "q04",
+      "question": "What are the clinical outcomes associated with metformin use?",
+      "reference": "Clinical outcomes for metformin in FAERS include hospitalisation, other serious outcomes, and death, with hospitalisation being the most frequently reported.",
+      "question_type": "outcome",
+      "expected_tools": ["search_drug_info", "get_drug_outcomes"]
+    },
+    {
+      "id": "q05",
+      "question": "Which drug category does ibuprofen belong to?",
+      "reference": "Ibuprofen belongs to the Nonsteroidal Anti-inflammatory Drugs (NSAIDs) category.",
+      "question_type": "category",
+      "expected_tools": ["search_drug_info"]
+    },
+    {
+      "id": "q06",
+      "question": "Compare the adverse event profiles of aspirin and ibuprofen.",
+      "reference": "Both aspirin and ibuprofen are NSAIDs and share common adverse events like gastrointestinal haemorrhage and nausea. Aspirin has more reports of platelet aggregation decreased, while ibuprofen has more reports of renal impairment.",
+      "question_type": "comparison",
+      "expected_tools": ["compare_drugs"]
+    },
+    {
+      "id": "q07",
+      "question": "What does the drug label say about metformin interactions?",
+      "reference": "According to the DailyMed drug label, metformin may interact with cationic drugs that are eliminated by renal tubular secretion, carbonic anhydrase inhibitors, and alcohol. These interactions can affect metformin clearance or increase the risk of lactic acidosis.",
+      "question_type": "label_search",
+      "expected_tools": ["search_drug_labels"]
+    },
+    {
+      "id": "q08",
+      "question": "What are the side effects of lisinopril?",
+      "reference": "Adverse events reported for lisinopril in FAERS include cough, dizziness, hypotension, renal impairment, and hyperkalaemia.",
+      "question_type": "drug_info",
+      "expected_tools": ["search_drug_info"]
+    },
+    {
+      "id": "q09",
+      "question": "Which drugs interact with methotrexate?",
+      "reference": "Methotrexate interacts with NSAIDs, trimethoprim, and other drugs that can reduce its clearance, increasing toxicity risk. Interactions are documented in both FAERS co-occurrence data and DailyMed labels.",
+      "question_type": "interaction",
+      "expected_tools": ["list_drug_interactions", "search_drug_info"]
+    },
+    {
+      "id": "q10",
+      "question": "What drugs cause rhabdomyolysis?",
+      "reference": "Drugs reported to cause rhabdomyolysis in FAERS include statins (atorvastatin, simvastatin, rosuvastatin), and other medications. Statins are the most commonly reported drug class.",
+      "question_type": "adverse_event",
+      "expected_tools": ["find_drugs_for_adverse_event"]
+    },
+    {
+      "id": "q11",
+      "question": "Is atorvastatin associated with death outcomes in FAERS?",
+      "reference": "Yes, atorvastatin has death reported as one of its clinical outcomes in FAERS data, along with hospitalisation and other serious outcomes.",
+      "question_type": "outcome",
+      "expected_tools": ["search_drug_info", "get_drug_outcomes"]
+    },
+    {
+      "id": "q12",
+      "question": "What are the warnings for omeprazole according to its drug label?",
+      "reference": "Omeprazole warnings include risk of Clostridium difficile-associated diarrhea, bone fracture risk with long-term use, hypomagnesemia, and potential interactions with clopidogrel reducing its antiplatelet effect.",
+      "question_type": "label_search",
+      "expected_tools": ["search_drug_labels"]
+    },
+    {
+      "id": "q13",
+      "question": "Which drugs are in the same category as warfarin?",
+      "reference": "Warfarin belongs to the anticoagulant category. Other drugs in this category include heparin and related anticoagulants found in the knowledge graph.",
+      "question_type": "category",
+      "expected_tools": ["search_drug_info", "find_drugs_by_category"]
+    },
+    {
+      "id": "q14",
+      "question": "What are the most common adverse events across all drugs in the database?",
+      "reference": "The most commonly reported adverse events across FAERS include nausea, drug ineffective, headache, fatigue, diarrhoea, and dizziness.",
+      "question_type": "adverse_event",
+      "expected_tools": ["search_adverse_events"]
+    },
+    {
+      "id": "q15",
+      "question": "Compare warfarin and apixaban in terms of safety.",
+      "reference": "Both warfarin and apixaban are anticoagulants. Warfarin has more drug interactions documented and requires INR monitoring. Both can cause haemorrhage, but their adverse event profiles differ in frequency and severity according to FAERS data.",
+      "question_type": "comparison",
+      "expected_tools": ["compare_drugs"]
+    },
+    {
+      "id": "q16",
+      "question": "Can metformin and lisinopril be taken together?",
+      "reference": "Based on the knowledge graph data, metformin and lisinopril do not have a documented direct interaction. However, both can affect renal function, and monitoring is advisable.",
+      "question_type": "interaction",
+      "expected_tools": ["search_drug_info", "list_drug_interactions"]
+    },
+    {
+      "id": "q17",
+      "question": "What are the contraindications for aspirin?",
+      "reference": "According to the DailyMed label, aspirin is contraindicated in patients with known allergy to NSAIDs, patients with asthma, rhinitis, and nasal polyps syndrome, and in children and teenagers with viral infections due to Reye's syndrome risk.",
+      "question_type": "label_search",
+      "expected_tools": ["search_drug_labels"]
+    },
+    {
+      "id": "q18",
+      "question": "Search for drugs whose name contains 'statin'.",
+      "reference": "Drugs matching 'statin' include atorvastatin, simvastatin, rosuvastatin, pravastatin, and lovastatin, among others found in the knowledge graph.",
+      "question_type": "drug_info",
+      "expected_tools": ["search_drugs_by_name"]
+    },
+    {
+      "id": "q19",
+      "question": "What is the mechanism of action of omeprazole?",
+      "reference": "According to the drug label, omeprazole is a proton pump inhibitor (PPI) that suppresses gastric acid secretion by specific inhibition of the H+/K+-ATPase enzyme system at the secretory surface of the gastric parietal cell.",
+      "question_type": "label_search",
+      "expected_tools": ["search_drug_labels"]
+    },
+    {
+      "id": "q20",
+      "question": "Which adverse events are shared by both aspirin and warfarin?",
+      "reference": "Both aspirin and warfarin share adverse events related to bleeding, including gastrointestinal haemorrhage and haemorrhage. This is expected given their anticoagulant and antiplatelet mechanisms.",
+      "question_type": "comparison",
+      "expected_tools": ["compare_drugs", "search_drug_info"]
+    },
+    {
+      "id": "q21",
+      "question": "How many adverse event reports does ibuprofen have for nausea?",
+      "reference": "Ibuprofen has FAERS reports linking it to nausea as an adverse event, with a specific report count available in the knowledge graph's CAUSES relationship.",
+      "question_type": "drug_info",
+      "expected_tools": ["search_drug_info"]
+    },
+    {
+      "id": "q22",
+      "question": "What drugs should be avoided with warfarin?",
+      "reference": "Drugs that interact with warfarin include aspirin, NSAIDs (ibuprofen), certain antibiotics, and other anticoagulants. These interactions can increase bleeding risk.",
+      "question_type": "interaction",
+      "expected_tools": ["search_drug_info", "list_drug_interactions"]
+    },
+    {
+      "id": "q23",
+      "question": "Tell me about the adverse event profile of prednisone.",
+      "reference": "Prednisone adverse events in FAERS include weight increased, insomnia, immunosuppression, hyperglycaemia, and osteoporosis among others.",
+      "question_type": "drug_info",
+      "expected_tools": ["search_drug_info"]
+    },
+    {
+      "id": "q24",
+      "question": "What is the dosage information for metformin?",
+      "reference": "According to the DailyMed drug label, metformin is typically started at 500mg twice daily or 850mg once daily with meals, with gradual dose increases. Maximum recommended daily dose is 2550mg.",
+      "question_type": "label_search",
+      "expected_tools": ["search_drug_labels"]
+    },
+    {
+      "id": "q25",
+      "question": "Which drugs cause both nausea and headache as adverse events?",
+      "reference": "Multiple drugs in FAERS are associated with both nausea and headache, including common medications like ibuprofen, metformin, and lisinopril. These are among the most frequently reported adverse events across many drug classes.",
+      "question_type": "multi_drug",
+      "expected_tools": ["find_drugs_for_adverse_event"]
+    }
+  ]
+}

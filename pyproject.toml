@@ -50,6 +50,8 @@ dependencies = [
     "langchain-google-genai>=4.2.1",
     "langchain-core>=1.2.22",
     "langfuse>=4.3.1",
+    "ragas>=0.4.3",
+    "datasets>=4.8.4",
 ]
 
 [project.optional-dependencies]
