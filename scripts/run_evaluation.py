@@ -49,9 +49,12 @@ def run_evaluation(
     testset_path: str | None,
     output_dir: str,
     model: str | None,
+    limit: int | None = None,
 ) -> None:
     """Run evaluation for a single pipeline mode."""
     dataset = load_testset(testset_path)
+    if limit is not None and limit > 0:
+        dataset.samples = dataset.samples[:limit]
     logger.info("Loaded {} samples, evaluating in '{}' mode", len(dataset), mode)
 
     config = RunConfig(api_url=api_url, mode=mode, model=model)
@@ -147,13 +150,19 @@ def main() -> None:
         default=None,
         help="LLM model to use for the pipeline (e.g. 'gemini-2.5-flash')",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit number of evaluation samples (useful for quick subset runs)",
+    )
     args = parser.parse_args()
 
     modes = ["classic", "agent", "multi"] if args.mode == "all" else [args.mode]
 
     for mode in modes:
         logger.info("Starting evaluation: mode={}, api={}", mode, args.api_url)
-        run_evaluation(mode, args.api_url, args.testset, args.output_dir, args.model)
+        run_evaluation(mode, args.api_url, args.testset, args.output_dir, args.model, args.limit)
         logger.info("Completed evaluation for mode={}", mode)
 
 

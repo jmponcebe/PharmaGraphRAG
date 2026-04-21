@@ -38,7 +38,7 @@ class EvalResult:
         return {m.name: m.score for m in self.metrics}
 
 
-def _get_evaluator_llm(model: str = "gemini-2.0-flash"):
+def _get_evaluator_llm(model: str = "gemini-2.5-flash"):
     """Create a RAGAS-compatible LLM wrapper using Gemini via OpenAI compatibility.
 
     Uses the Gemini OpenAI-compatible endpoint to avoid instructor/google-genai

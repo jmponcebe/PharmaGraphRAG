@@ -448,7 +448,7 @@ def _process_question_api(question: str) -> ChatMessage:
                 "n_results": s["n_results"],
                 "model": s.get("model"),
             },
-            timeout=180,
+            timeout=300,
         )
 
         if resp.status_code != 200:
@@ -548,7 +548,7 @@ def _process_question_agent_api(question: str) -> ChatMessage:
                 "session_id": st.session_state.get("agent_session_id"),
                 "model": st.session_state.settings.get("model"),
             },
-            timeout=180,
+            timeout=300,
         )
 
         if resp.status_code != 200:
@@ -632,7 +632,7 @@ def _process_question_multi_api(question: str) -> ChatMessage:
                 "model": st.session_state.settings.get("model"),
                 "subagent_model": st.session_state.settings.get("subagent_model"),
             },
-            timeout=180,
+            timeout=300,
         )
 
         if resp.status_code != 200:
