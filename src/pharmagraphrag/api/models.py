@@ -58,6 +58,12 @@ class QueryResponse(BaseModel):
     has_graph_context: bool = False
     has_vector_context: bool = False
     sources: list[SourceInfo] = Field(default_factory=list)
+    graph_context: str = Field(
+        "", description="Full graph context passed to the LLM (for evaluation/debugging)."
+    )
+    vector_context: str = Field(
+        "", description="Full vector context passed to the LLM (for evaluation/debugging)."
+    )
     llm_model: str = ""
     llm_provider: str = ""
     error: str | None = None

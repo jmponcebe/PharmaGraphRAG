@@ -41,41 +41,47 @@ class EvalResult:
 def _get_evaluator_llm(model: str = "gemini-2.5-flash"):
     """Create a RAGAS-compatible LLM wrapper using Gemini via OpenAI compatibility.
 
-    Uses the Gemini OpenAI-compatible endpoint to avoid instructor/google-genai
-    SDK conflicts with safety settings.
+    Uses LangChain's ChatOpenAI pointed at the Gemini OpenAI-compatible
+    endpoint, wrapped in LangchainLLMWrapper. Bumps max_tokens to avoid
+    truncation on multi-statement classification prompts (ContextRecall).
     """
     import os
 
-    from openai import OpenAI
-    from ragas.llms import llm_factory
+    from langchain_openai import ChatOpenAI
+    from ragas.llms import LangchainLLMWrapper
 
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise ValueError("GEMINI_API_KEY env var is required for RAGAS evaluation")
 
-    client = OpenAI(
+    chat = ChatOpenAI(
+        model=model,
         api_key=api_key,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        max_tokens=8192,
+        temperature=0.0,
     )
-    return llm_factory(model, provider="openai", client=client)
+    return LangchainLLMWrapper(chat)
 
 
-def _get_evaluator_embeddings(model: str = "text-embedding-004"):
-    """Create RAGAS-compatible embeddings using Gemini via OpenAI compatibility."""
+def _get_evaluator_embeddings(model: str = "models/gemini-embedding-001"):
+    """Create RAGAS-compatible embeddings using Gemini native API.
+
+    The Gemini OpenAI-compatibility endpoint does not support embeddings
+    (returns 501 UNIMPLEMENTED), so we use the native Google Generative AI
+    embeddings via langchain-google-genai.
+    """
     import os
 
-    from openai import OpenAI
-    from ragas.embeddings import OpenAIEmbeddings
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from ragas.embeddings import LangchainEmbeddingsWrapper
 
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise ValueError("GEMINI_API_KEY env var is required for RAGAS evaluation")
 
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    )
-    return OpenAIEmbeddings(client=client, model=model)
+    embeddings = GoogleGenerativeAIEmbeddings(model=model, google_api_key=api_key)
+    return LangchainEmbeddingsWrapper(embeddings)
 
 
 def get_reference_free_metrics(
@@ -105,15 +111,23 @@ def get_reference_metrics(
 
     Returns context precision, context recall, and answer correctness.
     """
-    from ragas.metrics import AnswerCorrectness, ContextPrecision, ContextRecall
+    from ragas.metrics import (
+        AnswerCorrectness,
+        AnswerSimilarity,
+        ContextPrecision,
+        ContextRecall,
+    )
 
     llm = llm or _get_evaluator_llm()
     embeddings = embeddings or _get_evaluator_embeddings()
 
+    # AnswerCorrectness needs an explicit AnswerSimilarity (embeddings-based)
+    answer_similarity = AnswerSimilarity(embeddings=embeddings)
+
     return [
         ContextPrecision(llm=llm),
         ContextRecall(llm=llm),
-        AnswerCorrectness(llm=llm, embeddings=embeddings),
+        AnswerCorrectness(llm=llm, embeddings=embeddings, answer_similarity=answer_similarity),
     ]
 
 
@@ -141,23 +155,33 @@ def score_sample(
     llm = llm or _get_evaluator_llm()
     embeddings = embeddings or _get_evaluator_embeddings()
 
+    import asyncio
+
+    from ragas.dataset_schema import SingleTurnSample
+
     metrics = get_reference_free_metrics(llm, embeddings)
     if reference:
         metrics.extend(get_reference_metrics(llm, embeddings))
 
-    results = []
-    for metric in metrics:
-        try:
-            score = metric.single_score(
-                user_input=question,
-                response=answer,
-                retrieved_contexts=contexts,
-                reference=reference,
-            )
-            results.append(MetricResult(name=type(metric).__name__, score=score))
-        except Exception as exc:
-            logger.warning("Metric {} failed: {}", type(metric).__name__, exc)
-            results.append(MetricResult(name=type(metric).__name__, score=-1.0))
+    sample = SingleTurnSample(
+        user_input=question,
+        response=answer,
+        retrieved_contexts=contexts,
+        reference=reference,
+    )
+
+    async def _score_all() -> list[MetricResult]:
+        out: list[MetricResult] = []
+        for metric in metrics:
+            try:
+                score = await metric.single_turn_ascore(sample)
+                out.append(MetricResult(name=type(metric).__name__, score=float(score)))
+            except Exception as exc:
+                logger.warning("Metric {} failed: {}", type(metric).__name__, exc)
+                out.append(MetricResult(name=type(metric).__name__, score=-1.0))
+        return out
+
+    results = asyncio.run(_score_all())
 
     return EvalResult(
         question=question,

@@ -144,6 +144,8 @@ def query(req: QueryRequest) -> QueryResponse:
             has_graph_context=result.context.has_graph,
             has_vector_context=result.context.has_vector,
             sources=sources,
+            graph_context=result.context.graph_context or "",
+            vector_context=result.context.vector_context or "",
             llm_model=llm_model,
             llm_provider=llm_provider,
             error=error,
