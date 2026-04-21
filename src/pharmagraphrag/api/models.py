@@ -32,6 +32,11 @@ class QueryRequest(BaseModel):
         default=None,
         description="LLM model to use (e.g. 'gemini-2.5-flash'). Uses server default if not set.",
     )
+    include_full_context: bool = Field(
+        False,
+        description="Include full graph_context and vector_context in the response. "
+        "Disabled by default to keep payloads small; enable for evaluation or debugging.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +63,16 @@ class QueryResponse(BaseModel):
     has_graph_context: bool = False
     has_vector_context: bool = False
     sources: list[SourceInfo] = Field(default_factory=list)
+    graph_context: str | None = Field(
+        None,
+        description="Full graph context passed to the LLM. Only populated when "
+        "include_full_context=True in the request (for evaluation/debugging).",
+    )
+    vector_context: str | None = Field(
+        None,
+        description="Full vector context passed to the LLM. Only populated when "
+        "include_full_context=True in the request (for evaluation/debugging).",
+    )
     llm_model: str = ""
     llm_provider: str = ""
     error: str | None = None

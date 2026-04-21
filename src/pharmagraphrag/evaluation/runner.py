@@ -46,7 +46,7 @@ class PipelineResponse:
 def _call_classic(question: str, config: RunConfig) -> PipelineResponse:
     """Call the classic pipeline via POST /query."""
     url = f"{config.api_url}/query"
-    body: dict[str, Any] = {"question": question}
+    body: dict[str, Any] = {"question": question, "include_full_context": True}
     if config.model:
         body["model"] = config.model
 
@@ -58,10 +58,19 @@ def _call_classic(question: str, config: RunConfig) -> PipelineResponse:
         data = resp.json()
 
         contexts = []
-        for src in data.get("sources", []):
-            snippet = src.get("snippet", "")
-            if snippet:
-                contexts.append(snippet)
+        # Prefer full graph/vector context (the text the LLM actually saw)
+        graph_ctx = data.get("graph_context", "")
+        if graph_ctx:
+            contexts.append(graph_ctx)
+        vector_ctx = data.get("vector_context", "")
+        if vector_ctx:
+            contexts.append(vector_ctx)
+        # Fallback to snippets (older API versions)
+        if not contexts:
+            for src in data.get("sources", []):
+                snippet = src.get("snippet", "")
+                if snippet:
+                    contexts.append(snippet)
 
         return PipelineResponse(
             answer=data.get("answer", ""),

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -207,7 +207,7 @@ class TestScoreSample:
     @patch("pharmagraphrag.evaluation.metrics.get_reference_free_metrics")
     def test_score_without_reference(self, mock_free, mock_llm, mock_emb):
         mock_metric = MagicMock()
-        mock_metric.single_score.return_value = 0.85
+        mock_metric.single_turn_ascore = AsyncMock(return_value=0.85)
         type(mock_metric).__name__ = "Faithfulness"
         mock_free.return_value = [mock_metric]
 
@@ -226,12 +226,12 @@ class TestScoreSample:
     @patch("pharmagraphrag.evaluation.metrics.get_reference_free_metrics")
     def test_score_with_reference(self, mock_free, mock_ref, mock_llm, mock_emb):
         mock_metric1 = MagicMock()
-        mock_metric1.single_score.return_value = 0.9
+        mock_metric1.single_turn_ascore = AsyncMock(return_value=0.9)
         type(mock_metric1).__name__ = "Faithfulness"
         mock_free.return_value = [mock_metric1]
 
         mock_metric2 = MagicMock()
-        mock_metric2.single_score.return_value = 0.7
+        mock_metric2.single_turn_ascore = AsyncMock(return_value=0.7)
         type(mock_metric2).__name__ = "ContextRecall"
         mock_ref.return_value = [mock_metric2]
 
@@ -250,7 +250,7 @@ class TestScoreSample:
     @patch("pharmagraphrag.evaluation.metrics.get_reference_free_metrics")
     def test_score_handles_metric_error(self, mock_free, mock_llm, mock_emb):
         mock_metric = MagicMock()
-        mock_metric.single_score.side_effect = RuntimeError("API error")
+        mock_metric.single_turn_ascore = AsyncMock(side_effect=RuntimeError("API error"))
         type(mock_metric).__name__ = "Faithfulness"
         mock_free.return_value = [mock_metric]
 
@@ -303,6 +303,24 @@ class TestCallClassic:
         assert resp.answer == "Aspirin causes GI bleeding."
         assert len(resp.contexts) == 2
         assert resp.error is None
+
+    @patch("pharmagraphrag.evaluation.runner.httpx.post")
+    def test_prefers_full_contexts_over_snippets(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "answer": "ok",
+            "graph_context": "Drug: ASPIRIN\nAdverse events: DYSPNOEA 489",
+            "vector_context": "Full label text for aspirin...",
+            "sources": [{"snippet": "truncated snippet", "type": "graph"}],
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        resp = _call_classic("q?", RunConfig(api_url="http://t"))
+
+        assert len(resp.contexts) == 2
+        assert "DYSPNOEA 489" in resp.contexts[0]
+        assert "Full label text" in resp.contexts[1]
 
     @patch("pharmagraphrag.evaluation.runner.httpx.post")
     def test_handles_error(self, mock_post):
