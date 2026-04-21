@@ -46,7 +46,7 @@ class PipelineResponse:
 def _call_classic(question: str, config: RunConfig) -> PipelineResponse:
     """Call the classic pipeline via POST /query."""
     url = f"{config.api_url}/query"
-    body: dict[str, Any] = {"question": question}
+    body: dict[str, Any] = {"question": question, "include_full_context": True}
     if config.model:
         body["model"] = config.model
 
