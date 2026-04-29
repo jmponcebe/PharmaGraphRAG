@@ -35,6 +35,8 @@ data/chroma/
 .env
 .env.local
 .env.production
+.env.aura
+.env.*
 
 # === Credentials / secrets ===
 *.credentials
