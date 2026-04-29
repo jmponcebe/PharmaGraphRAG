@@ -28,10 +28,31 @@ from dotenv import dotenv_values
 ROOT = Path(__file__).resolve().parent.parent
 
 # Load Aura credentials BEFORE importing pharmagraphrag (pydantic-settings cache)
-aura_env = dotenv_values(ROOT / ".env.aura")
-os.environ["NEO4J_URI"] = aura_env["NEO4J_URI"]
-os.environ["NEO4J_USER"] = aura_env.get("NEO4J_USER") or aura_env["NEO4J_USERNAME"]
-os.environ["NEO4J_PASSWORD"] = aura_env["NEO4J_PASSWORD"]
+aura_env_path = ROOT / ".env.aura"
+aura_env = dotenv_values(aura_env_path)
+
+neo4j_uri = aura_env.get("NEO4J_URI")
+neo4j_user = aura_env.get("NEO4J_USER") or aura_env.get("NEO4J_USERNAME")
+neo4j_password = aura_env.get("NEO4J_PASSWORD")
+
+missing = [
+    name
+    for name, value in (
+        ("NEO4J_URI", neo4j_uri),
+        ("NEO4J_USER or NEO4J_USERNAME", neo4j_user),
+        ("NEO4J_PASSWORD", neo4j_password),
+    )
+    if not value
+]
+if missing:
+    raise SystemExit(
+        f"Missing required Neo4j Aura settings in {aura_env_path}: "
+        f"{', '.join(missing)}. Create or update .env.aura with the connection values."
+    )
+
+os.environ["NEO4J_URI"] = neo4j_uri
+os.environ["NEO4J_USER"] = neo4j_user
+os.environ["NEO4J_PASSWORD"] = neo4j_password
 
 # Now safe to import; settings will pick up the Aura values
 import re  # noqa: E402
