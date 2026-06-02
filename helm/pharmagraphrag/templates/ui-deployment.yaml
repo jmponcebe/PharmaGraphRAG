@@ -1,0 +1,47 @@
+{{- if .Values.ui.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ui
+  labels:
+    {{- include "pharmagraphrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+spec:
+  {{- if not .Values.ui.autoscaling.enabled }}
+  replicas: {{ .Values.ui.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pharmagraphrag.selectorLabels" (dict "Chart" .Chart "Release" .Release "component" "ui") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pharmagraphrag.selectorLabels" (dict "Chart" .Chart "Release" .Release "component" "ui") | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: ui
+          image: {{ include "pharmagraphrag.image" (dict "globalImage" .Values.image "componentImage" .Values.ui.image "chartAppVersion" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ui.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-config
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            {{- toYaml .Values.ui.probes.readiness | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            {{- toYaml .Values.ui.probes.liveness | nindent 12 }}
+{{- end }}

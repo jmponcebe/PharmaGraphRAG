@@ -1,0 +1,51 @@
+# Optional: Ingress with GKE managed certificate (HTTPS)
+# Requires:
+#   1. A domain pointing to the Ingress IP via A record.
+#   2. ManagedCertificate resource (GKE-specific).
+#
+# For quick demos without a domain, the LoadBalancer Service in
+# ui-service.yaml already exposes the UI directly (no Ingress needed).
+#
+# Apply only if you have a domain.
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: pharmagraphrag-cert
+  namespace: pharmagraphrag
+spec:
+  domains:
+    - REPLACE_WITH_YOUR_DOMAIN.example.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pharmagraphrag
+  namespace: pharmagraphrag
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/managed-certificates: pharmagraphrag-cert
+    kubernetes.io/ingress.global-static-ip-name: pharmagraphrag-ip
+spec:
+  defaultBackend:
+    service:
+      name: pharmagraphrag-ui
+      port:
+        number: 80
+  rules:
+    - host: REPLACE_WITH_YOUR_DOMAIN.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: pharmagraphrag-api
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pharmagraphrag-ui
+                port:
+                  number: 80

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "pharmagraphrag.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  # Inter-service DNS for the UI to reach the API
+  API_URL: "http://{{ .Release.Name }}-api:{{ .Values.api.service.port }}"

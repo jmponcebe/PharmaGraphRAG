@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.managedCertificate }}
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ .Release.Name }}-cert
+  labels:
+    {{- include "pharmagraphrag.labels" . | nindent 4 }}
+spec:
+  domains:
+    - {{ .Values.ingress.host | quote }}
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "pharmagraphrag.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    {{- if .Values.ingress.managedCertificate }}
+    networking.gke.io/managed-certificates: {{ .Release.Name }}-cert
+    {{- end }}
+    {{- if .Values.ingress.staticIPName }}
+    kubernetes.io/ingress.global-static-ip-name: {{ .Values.ingress.staticIPName | quote }}
+    {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-api
+                port:
+                  number: {{ .Values.api.service.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-ui
+                port:
+                  number: {{ .Values.ui.service.port }}
+{{- end }}

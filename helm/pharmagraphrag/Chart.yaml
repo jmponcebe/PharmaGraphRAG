@@ -1,0 +1,20 @@
+apiVersion: v2
+name: pharmagraphrag
+description: GraphRAG system for drug interactions & adverse events (FDA data + Neo4j + ChromaDB + Gemini/Ollama)
+type: application
+version: 0.1.0
+appVersion: "1.5.0"
+keywords:
+  - graphrag
+  - rag
+  - neo4j
+  - chromadb
+  - llm
+  - pharmacovigilance
+home: https://github.com/jmponcebe/PharmaGraphRAG
+sources:
+  - https://github.com/jmponcebe/PharmaGraphRAG
+maintainers:
+  - name: Jose María Ponce Bernabé
+    email: jmponcebe@gmail.com
+icon: https://raw.githubusercontent.com/jmponcebe/PharmaGraphRAG/main/assets/screenshots/social-preview.png
