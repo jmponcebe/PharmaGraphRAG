@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled }}
+{{- $host := required "ingress.host is required when ingress.enabled=true" .Values.ingress.host -}}
 {{- if .Values.ingress.managedCertificate }}
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
@@ -8,7 +9,7 @@ metadata:
     {{- include "pharmagraphrag.labels" . | nindent 4 }}
 spec:
   domains:
-    - {{ .Values.ingress.host | quote }}
+    - {{ $host | quote }}
 ---
 {{- end }}
 apiVersion: networking.k8s.io/v1
@@ -27,7 +28,7 @@ metadata:
     {{- end }}
 spec:
   rules:
-    - host: {{ .Values.ingress.host | quote }}
+    - host: {{ $host | quote }}
       http:
         paths:
           - path: /api

@@ -75,17 +75,14 @@ ui:
       initialDelaySeconds: 30
       periodSeconds: 30
 
-# -- Non-secret application configuration (mounted as env vars via ConfigMap)
+# -- Non-secret application configuration (mounted as env vars via ConfigMap).
+# Keys must match attributes in src/pharmagraphrag/config.py:Settings.
 config:
   LLM_PROVIDER: "gemini"
-  LLM_MODEL: "gemini-2.5-flash"
   NEO4J_USER: "neo4j"
   CHROMA_PERSIST_DIR: "/app/data/chroma"
-  API_HOST: "0.0.0.0"
-  API_PORT: "8000"
-  STREAMLIT_PORT: "8501"
   LANGFUSE_ENABLED: "false"
-  LANGFUSE_HOST: "https://cloud.langfuse.com"
+  LANGFUSE_BASE_URL: "https://cloud.langfuse.com"
 
 # -- Secret values (NEVER commit real values here; override via --set or external secret manager)
 secrets:

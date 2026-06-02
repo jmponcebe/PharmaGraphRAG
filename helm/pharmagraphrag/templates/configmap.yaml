@@ -8,5 +8,7 @@ data:
   {{- range $key, $value := .Values.config }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
-  # Inter-service DNS for the UI to reach the API
+  {{- if not (hasKey .Values.config "API_URL") }}
+  # Inter-service DNS for the UI to reach the API (auto-injected when not overridden)
   API_URL: "http://{{ .Release.Name }}-api:{{ .Values.api.service.port }}"
+  {{- end }}
