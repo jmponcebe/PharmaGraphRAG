@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pharmagraphrag-ui
+  namespace: pharmagraphrag
+  labels:
+    app.kubernetes.io/name: pharmagraphrag
+    app.kubernetes.io/component: ui
+  annotations:
+    # GKE: provision a Google Cloud Load Balancer for external access
+    cloud.google.com/load-balancer-type: "External"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: pharmagraphrag
+    app.kubernetes.io/component: ui

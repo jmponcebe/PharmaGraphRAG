@@ -360,6 +360,17 @@ The project is **deployed and live** on a distributed cloud architecture:
 | API + Vector Store | [Google Cloud Run](https://cloud.google.com/run) | [pharmagraphrag-api-...run.app](https://pharmagraphrag-api-893694384146.us-central1.run.app/health) |
 | Knowledge Graph | [Neo4j Aura](https://neo4j.com/cloud/aura-free/) | Managed instance (11.9K nodes, 381K rels) |
 
+### Deployment Options
+
+PharmaGraphRAG ships with two cloud deployment paths that you can pick from:
+
+| Path | Best for | Cost (idle) | Files |
+| --- | --- | --- | --- |
+| **Cloud Run + Streamlit Cloud** (default) | Low-traffic demos, scale-to-zero | $0 | [`cloudbuild.yaml`](cloudbuild.yaml), [`docker/Dockerfile.cloudrun`](docker/Dockerfile.cloudrun) |
+| **GKE Autopilot + Helm** | Production-grade orchestration, HPA, rolling updates | ~$1-2/h while running | [`k8s/`](k8s/), [`helm/pharmagraphrag/`](helm/pharmagraphrag/), [`.github/workflows/deploy-gke.yml`](.github/workflows/deploy-gke.yml) |
+
+The Kubernetes path was added to the portfolio to demonstrate production patterns: parameterized Helm chart, HorizontalPodAutoscalers, ConfigMap/Secret separation, probes tuned for the embedding-model cold start, and an automated GitHub Actions workflow that builds images, pushes to GCR and rolls out via `helm upgrade`. The cluster is **provisioned on-demand**: manifests live permanently in the repo, and the cluster is destroyed after each demo to avoid GKE costs. See [`k8s/README.md`](k8s/README.md) for the deploy/destroy commands.
+
 <details>
 <summary>📋 Reproducing the deployment</summary>
 

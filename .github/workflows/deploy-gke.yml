@@ -1,0 +1,146 @@
+# ============================================================
+# GitHub Actions: Deploy PharmaGraphRAG to GKE
+# ============================================================
+# Triggered by tags matching v*-k8s (e.g. v1.5.0-k8s).
+# Reuses CI workflow first, then builds API+UI images and
+# deploys via Helm to a GKE Autopilot cluster.
+#
+# Required GitHub secrets:
+#   - GCP_SA_KEY:               Service account JSON key (roles: container.developer,
+#                               artifactregistry.writer, storage.admin)
+#   - GKE_CLUSTER_NAME:         e.g. pharmagraphrag-autopilot
+#   - GKE_CLUSTER_LOCATION:     e.g. us-central1
+#   - GKE_PROJECT_ID:           e.g. pharmagraphrag
+#   - PGRAG_NEO4J_URI
+#   - PGRAG_NEO4J_PASSWORD
+#   - PGRAG_GEMINI_API_KEY
+# ============================================================
+name: Deploy to GKE
+
+on:
+  push:
+    tags:
+      - "v*-k8s"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (e.g. v1.5.0-k8s)"
+        required: true
+        default: "latest-k8s"
+
+env:
+  REGISTRY: gcr.io
+  PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
+  API_IMAGE: pharmagraphrag-api
+  UI_IMAGE: pharmagraphrag-ui
+  CLUSTER_NAME: ${{ secrets.GKE_CLUSTER_NAME }}
+  CLUSTER_LOCATION: ${{ secrets.GKE_CLUSTER_LOCATION }}
+  NAMESPACE: pharmagraphrag
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build-and-deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io --quiet
+
+      - name: Download ChromaDB snapshot from GCS
+        run: |
+          mkdir -p data/chroma
+          gcloud storage cp -r gs://pharmagraphrag-data/chroma/chroma/* data/chroma/
+
+      - name: Build API image
+        run: |
+          cp docker/Dockerfile.cloudrun.dockerignore .dockerignore
+          docker build -f docker/Dockerfile.cloudrun \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.API_IMAGE }}:${{ steps.tag.outputs.value }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.API_IMAGE }}:latest-k8s \
+            .
+
+      - name: Build UI image
+        run: |
+          docker build -f docker/Dockerfile.ui \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE }}:${{ steps.tag.outputs.value }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE }}:latest-k8s \
+            .
+
+      - name: Push images
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.API_IMAGE }}:${{ steps.tag.outputs.value }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.API_IMAGE }}:latest-k8s
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE }}:${{ steps.tag.outputs.value }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE }}:latest-k8s
+
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
+            --region ${{ env.CLUSTER_LOCATION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Create namespace if missing
+        run: |
+          kubectl get namespace ${{ env.NAMESPACE }} 2>/dev/null \
+            || kubectl create namespace ${{ env.NAMESPACE }}
+
+      - name: Apply secrets
+        run: |
+          kubectl -n ${{ env.NAMESPACE }} create secret generic pharmagraphrag-secrets \
+            --from-literal=GEMINI_API_KEY='${{ secrets.PGRAG_GEMINI_API_KEY }}' \
+            --from-literal=NEO4J_URI='${{ secrets.PGRAG_NEO4J_URI }}' \
+            --from-literal=NEO4J_PASSWORD='${{ secrets.PGRAG_NEO4J_PASSWORD }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Deploy via Helm
+        run: |
+          helm upgrade --install pharmagraphrag helm/pharmagraphrag \
+            --namespace ${{ env.NAMESPACE }} \
+            --set image.registry=${{ env.REGISTRY }}/${{ env.PROJECT_ID }} \
+            --set image.tag=${{ steps.tag.outputs.value }} \
+            --set secrets.create=false \
+            --set secrets.existingSecret=pharmagraphrag-secrets \
+            --wait --timeout 10m
+
+      - name: Show deployment status
+        run: |
+          kubectl -n ${{ env.NAMESPACE }} get pods,svc,hpa
+          echo "---"
+          echo "UI external IP (may take 1-2 min):"
+          kubectl -n ${{ env.NAMESPACE }} get svc pharmagraphrag-ui -o wide

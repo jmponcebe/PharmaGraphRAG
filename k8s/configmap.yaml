@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pharmagraphrag-config
+  namespace: pharmagraphrag
+data:
+  # Non-secret application configuration (keys must match Settings in src/pharmagraphrag/config.py)
+  LLM_PROVIDER: "gemini"
+  NEO4J_USER: "neo4j"
+  CHROMA_PERSIST_DIR: "/app/data/chroma"
+  # UI uses the internal service DNS to reach the API
+  API_URL: "http://pharmagraphrag-api.pharmagraphrag.svc.cluster.local:8000"
+  # Langfuse (opt-in)
+  LANGFUSE_ENABLED: "false"
+  LANGFUSE_BASE_URL: "https://cloud.langfuse.com"

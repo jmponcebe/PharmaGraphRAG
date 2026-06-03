@@ -1,0 +1,24 @@
+PharmaGraphRAG release "{{ .Release.Name }}" deployed to namespace "{{ .Release.Namespace }}".
+
+To check status:
+  kubectl -n {{ .Release.Namespace }} get pods,svc,hpa,ingress
+
+{{- if eq .Values.ui.service.type "LoadBalancer" }}
+
+The UI is exposed as a LoadBalancer Service. Wait ~1-2 min for the external IP to be assigned, then:
+  kubectl -n {{ .Release.Namespace }} get svc {{ .Release.Name }}-ui
+
+Once the EXTERNAL-IP shows a value (not <pending>), open: http://<EXTERNAL-IP>
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Ingress is enabled at host: {{ .Values.ingress.host }}
+Point a DNS A record to the ingress IP, then access: https://{{ .Values.ingress.host }}
+{{- end }}
+
+API is reachable inside the cluster at:
+  http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.api.service.port }}
+
+To uninstall (and free up GKE costs):
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}

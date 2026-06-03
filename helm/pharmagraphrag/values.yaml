@@ -1,0 +1,127 @@
+# Default values for pharmagraphrag.
+# This is a YAML-formatted file.
+
+# -- Global image registry shared by API + UI (override per component below if needed)
+image:
+  registry: gcr.io/pharmagraphrag
+  pullPolicy: IfNotPresent
+  tag: latest
+
+# -- API component (FastAPI + ChromaDB embedded)
+api:
+  enabled: true
+  image:
+    repository: pharmagraphrag-api
+    tag: ""  # falls back to .Values.image.tag and Chart.appVersion
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  probes:
+    startup:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 24
+    readiness:
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    liveness:
+      initialDelaySeconds: 60
+      periodSeconds: 30
+
+# -- UI component (Streamlit)
+ui:
+  enabled: true
+  image:
+    repository: pharmagraphrag-ui
+    tag: ""
+  replicaCount: 1
+  service:
+    # LoadBalancer = direct external IP (recommended for demos without a domain)
+    # ClusterIP = internal-only (use Ingress for external access)
+    type: LoadBalancer
+    port: 80
+    targetPort: 8501
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 75
+  probes:
+    readiness:
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    liveness:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+
+# -- Non-secret application configuration (mounted as env vars via ConfigMap).
+# Keys must match attributes in src/pharmagraphrag/config.py:Settings.
+config:
+  LLM_PROVIDER: "gemini"
+  NEO4J_USER: "neo4j"
+  CHROMA_PERSIST_DIR: "/app/data/chroma"
+  LANGFUSE_ENABLED: "false"
+  LANGFUSE_BASE_URL: "https://cloud.langfuse.com"
+
+# -- Secret values (NEVER commit real values here; override via --set or external secret manager)
+secrets:
+  # Set to true to let Helm create the Secret (dev/demo only)
+  create: false
+  # If create=false, an existing Secret with this name must be provided out-of-band
+  existingSecret: pharmagraphrag-secrets
+  # Used only when create=true
+  values:
+    GEMINI_API_KEY: ""
+    NEO4J_URI: ""
+    NEO4J_PASSWORD: ""
+    LANGFUSE_PUBLIC_KEY: ""
+    LANGFUSE_SECRET_KEY: ""
+
+# -- Optional Ingress (GKE managed cert)
+ingress:
+  enabled: false
+  className: "gce"
+  host: ""  # e.g. pharmagraphrag.example.com
+  managedCertificate: false
+  staticIPName: ""  # e.g. pharmagraphrag-ip (reserved beforehand with gcloud)
+
+# -- Pod security context (non-root)
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # ChromaDB needs writes to /tmp internally
+
+# -- Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}

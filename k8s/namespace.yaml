@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pharmagraphrag
+  labels:
+    app.kubernetes.io/name: pharmagraphrag
+    app.kubernetes.io/managed-by: kubectl

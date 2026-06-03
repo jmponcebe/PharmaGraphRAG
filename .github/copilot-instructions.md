@@ -24,7 +24,8 @@ All three development phases are finished. The system is fully operational end-t
 | Agent Mode | Complete | `src/pharmagraphrag/agent/` (LangGraph ReAct + multi-agent supervisor) |
 | Observability | Complete | `src/pharmagraphrag/observability.py` (Langfuse tracing) |
 | Docker Compose | Complete | `docker-compose.yml` + `docker/` |
-| CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` |
+| Kubernetes / Helm | Complete | `k8s/` (raw manifests) + `helm/pharmagraphrag/` (chart) |
+| CI/CD | Complete | `.github/workflows/ci.yml` + `deploy.yml` + `deploy-gke.yml` |
 | Evaluation | Complete | `src/pharmagraphrag/evaluation/` (RAGAS metrics, agent eval, curated testset) |
 | Tests | 263 passing | `tests/` |
 | Cloud Deployment | Live | Streamlit Cloud + Cloud Run + Neo4j Aura |
@@ -102,6 +103,7 @@ FDA FAERS (CSV) + DailyMed (API)
 - **API**: FastAPI >= 0.115 with Pydantic v2
 - **UI**: Streamlit 1.54+ with streamlit-agraph, pyvis, plotly
 - **Containers**: Docker Compose (Neo4j + API + UI + optional Ollama)
+- **Kubernetes**: Helm 3 chart (`helm/pharmagraphrag/`) + raw manifests (`k8s/`). HPA on CPU/memory, startup probes tuned for ~50s embedding-model cold start, LoadBalancer for UI, ClusterIP for API, optional GKE Ingress + managed cert. Designed for on-demand GKE Autopilot (destroy cluster after demos).
 - **CI/CD**: GitHub Actions (ci.yml: lint+test on push; deploy.yml: CD on v* tags via Cloud Build)
 - **Evaluation**: RAGAS 0.4.3 (Faithfulness, Relevancy, Precision, Recall, Correctness) + custom agent tool accuracy
 - **Testing**: pytest (261 tests passing)
