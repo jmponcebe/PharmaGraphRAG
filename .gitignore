@@ -84,3 +84,6 @@ coverage.xml
 # === uv ===
 # Lock file IS tracked (reproducibility)
 # uv.lock
+
+assets/screenshots/linkedin-k8s/
+data/evaluation/results/v2_full/*.txt
