@@ -90,7 +90,7 @@ RAGAS 0.4.3 with Gemini via OpenAI-compatible endpoint. 25-question curated test
 - **CD pipeline**: v* tags → GitHub Actions → Cloud Build → GCR → Cloud Run
 - **Cloud Build**: downloads ChromaDB from GCS bucket → Docker build → deploy
 - **Image**: CPU-only PyTorch, baked-in ChromaDB, pre-cached embedding model (~2.5 GB). Cold start ~50s, warm ~4.5s
-- **Service account**: `github-cd@pharmagraphrag.iam.gserviceaccount.com`
+- **Service account**: see `docs/deployment-reference.md` (gitignored)
 
 ### Deploy Safety
 
